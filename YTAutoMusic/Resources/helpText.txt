@@ -1,0 +1,9 @@
+﻿
+'n' - new playlist
+Create new playlist from a YouTube playlist. Place files in a new folder.
+
+'a' - append playlist
+Update a playlist to include new music from YouTube playlist. Requires an existing playlist folder.
+
+'c' - copy playlist
+Copy an existing playlist to a new location while preserving all the files' functionality

@@ -1,0 +1,2 @@
+﻿What do you want to do?
+'n' - new playlist | 'a' - append playlist | 'q' - quit | 'c' copy | 'h' - help
