@@ -14,8 +14,8 @@
         <StartupObject>YTAutoMusic.Program</StartupObject>
         <SignAssembly>False</SignAssembly>
         <ApplicationIcon>Resources\logo.ico</ApplicationIcon>
-        <AssemblyVersion>1.4.1</AssemblyVersion>
-        <FileVersion>1.4.1</FileVersion>
+        <AssemblyVersion>1.4.2</AssemblyVersion>
+        <FileVersion>1.4.2</FileVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

@@ -19,7 +19,17 @@ Note: these need to be enabled seperately in the config file 'YTAutoMusic.dll.co
 Most programs will support the default playlist files. XSPF is prefered as it works the same in most programs. Extensions are supported but necessary.
 M3U8 will probably work on anything else, however, the spec for M3U8 is not standardized so you may need to experiment with different modes.
 
-## Quick Start
+## Build Your Own Executable (The safer option)
+- Clone the repository to your local machine
+- Open the solution (.sln) file in Visual Studio
+- Go to YTAutoMusic/Dependencies
+- Open Dependencies_README.md and follow those instructions
+- Go to build/publish
+- Hit publish
+- Open the publish folder and move all of the built files to their final location
+- Optionally create a shortcut and open YTAutoMusic.exe to finish
+
+## Released Executable Quick Start
 - Download the latest release in the 'releases' tab
 - Customize settings in the 'YTAutoMusic.dll.config' file
 - Create a YouTube playlist
