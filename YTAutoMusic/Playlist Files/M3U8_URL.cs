@@ -1,6 +1,6 @@
 ﻿using System.Text.Encodings.Web;
 
-namespace YTAutoMusic.Playlist_Files
+namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     internal class M3U8_URL : M3U8File
     {

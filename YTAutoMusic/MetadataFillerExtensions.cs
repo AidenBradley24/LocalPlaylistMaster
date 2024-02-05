@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace YTAutoMusic
+namespace LocalPlaylistMaster.Backend
 {
     public static class MetadataFillerExtensions
     {

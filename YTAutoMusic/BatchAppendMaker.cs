@@ -1,4 +1,4 @@
-﻿namespace YTAutoMusic
+﻿namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// Creates the append shortcut

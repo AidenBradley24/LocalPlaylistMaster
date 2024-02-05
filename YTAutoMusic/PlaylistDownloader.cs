@@ -2,7 +2,7 @@
 using System.Text;
 using TagLib.Id3v2;
 
-namespace YTAutoMusic
+namespace LocalPlaylistMaster.Backend
 {
     internal static class PlaylistDownloader
     {
@@ -385,7 +385,7 @@ namespace YTAutoMusic
             BatchAppendMaker.Create(trackDirectory.Parent, url);
 
             using StreamWriter writer = new(Path.Combine(trackDirectory.Parent.FullName, "README.txt"));
-            writer.Write(Resources.readmeText);
+            //writer.Write(Resources.readmeText);
         }
 
         public static bool IsInsideProject(DirectoryInfo targetDirectory)

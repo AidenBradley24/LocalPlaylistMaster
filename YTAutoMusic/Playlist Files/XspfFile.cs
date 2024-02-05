@@ -3,7 +3,7 @@ using System.Text.Encodings.Web;
 using System.Xml.Linq;
 using TagLib.Id3v2;
 
-namespace YTAutoMusic.Playlist_Files
+namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     /// <summary>
     /// Base class for XSPF playlists derivatives

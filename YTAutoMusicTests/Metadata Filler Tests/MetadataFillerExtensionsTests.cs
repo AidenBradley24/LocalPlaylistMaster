@@ -1,4 +1,4 @@
-﻿using YTAutoMusic;
+﻿using LocalPlaylistMaster;
 
 namespace YTAutoMusicTests.Metadata_Filler_Tests
 {

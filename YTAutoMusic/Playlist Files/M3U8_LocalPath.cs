@@ -1,4 +1,4 @@
-﻿namespace YTAutoMusic.Playlist_Files
+﻿namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     internal class M3U8_LocalPath : M3U8File
     {

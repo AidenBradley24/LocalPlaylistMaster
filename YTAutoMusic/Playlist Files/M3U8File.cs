@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace YTAutoMusic.Playlist_Files
+namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     internal abstract class M3U8File : PlaylistFile
     {

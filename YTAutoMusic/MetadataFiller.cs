@@ -2,7 +2,7 @@
 using System.Configuration;
 using System.Globalization;
 
-namespace YTAutoMusic
+namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// Responsible for all metadata filling. Attempts all filling schemes with inherited <see cref="MetadataBase"/>

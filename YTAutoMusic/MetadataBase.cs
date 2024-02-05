@@ -1,4 +1,4 @@
-﻿namespace YTAutoMusic
+﻿namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// A meta data filling scheme; Only one can be used per song.

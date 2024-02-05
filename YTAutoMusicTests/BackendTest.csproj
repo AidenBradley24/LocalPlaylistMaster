@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YTAutoMusic\YTAutoMusic.csproj" />
+    <ProjectReference Include="..\YTAutoMusic\LocalPlaylistMaster.Backend.csproj" />
   </ItemGroup>
 
   <ItemGroup>

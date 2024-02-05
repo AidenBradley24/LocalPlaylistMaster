@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace YTAutoMusic.Playlist_Files
+namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     internal class AimpFile : XspfFile
     {

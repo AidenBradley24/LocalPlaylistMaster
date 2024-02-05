@@ -1,6 +1,6 @@
-﻿using static YTAutoMusic.MetadataFillerExtensions;
+﻿using static LocalPlaylistMaster.Backend.MetadataFillerExtensions;
 
-namespace YTAutoMusic.Metadata_Fillers
+namespace LocalPlaylistMaster.Backend.Metadata_Fillers
 {
     public class SoundtrackMetadata : MetadataBase
     {

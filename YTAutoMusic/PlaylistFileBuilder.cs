@@ -1,8 +1,8 @@
 ﻿using System.Configuration;
 using System.Reflection;
-using YTAutoMusic;
+using LocalPlaylistMaster;
 
-namespace YTAutoMusic
+namespace LocalPlaylistMaster.Backend
 {
     internal class PlaylistFileBuilder
     {
@@ -53,24 +53,24 @@ namespace YTAutoMusic
             }
         }
     }
-}
-
-/// <summary>
-/// A generator for a playlist file
-/// </summary>
-internal abstract class PlaylistFile
-{
-    /// <summary>
-    /// Name in the config file
-    /// "Create %Playlist Name%"
-    /// </summary>
-    public abstract string ConfigName { get; }
 
     /// <summary>
-    /// Create the playlist file.
+    /// A generator for a playlist file
     /// </summary>
-    /// <param name="targetDirectory">Directory to place the file</param>
-    /// <param name="trackDirectory">Location of the tagged audio files</param>
-    /// <param name="bundle">Playlist information</param>
-    public abstract void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, PlaylistBundle bundle);
+    internal abstract class PlaylistFile
+    {
+        /// <summary>
+        /// Name in the config file
+        /// "Create %Playlist Name%"
+        /// </summary>
+        public abstract string ConfigName { get; }
+
+        /// <summary>
+        /// Create the playlist file.
+        /// </summary>
+        /// <param name="targetDirectory">Directory to place the file</param>
+        /// <param name="trackDirectory">Location of the tagged audio files</param>
+        /// <param name="bundle">Playlist information</param>
+        public abstract void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, PlaylistBundle bundle);
+    }
 }

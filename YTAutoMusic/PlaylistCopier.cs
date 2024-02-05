@@ -1,4 +1,4 @@
-﻿namespace YTAutoMusic
+﻿namespace LocalPlaylistMaster.Backend
 {
     internal static class PlaylistCopier
     {

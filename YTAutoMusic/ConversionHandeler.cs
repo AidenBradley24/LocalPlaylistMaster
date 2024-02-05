@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Configuration;
 
-namespace YTAutoMusic
+namespace LocalPlaylistMaster.Backend
 {
     internal class ConversionHandeler
     {
