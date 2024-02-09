@@ -1,0 +1,6 @@
+﻿CREATE TABLE Remotes (
+	Id INTEGER PRIMARY KEY,
+	Name TEXT,
+	Link TEXT,
+	UseCount INTEGER
+);

@@ -11,18 +11,22 @@
             <Rectangle Height="10"/>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Playlist Name:" Width="100"/>
-                <TextBox Name="playlistName" AcceptsReturn="False" MaxLength="20" Width="280" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding PlaylistName, Mode=TwoWay}" AcceptsReturn="False" MaxLength="20" Width="280" HorizontalAlignment="Left"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="File Location:" Width="100"/>
-                <TextBox Name="saveLocation" AcceptsReturn="False" MaxLength="20" Width="260" HorizontalAlignment="Left"/>
+                <TextBox Text="{Binding FileLocation, Mode=TwoWay}" AcceptsReturn="False" MaxLength="20" Width="260" HorizontalAlignment="Left"/>
                 <Button Name="selectLocationButton" Content="..." Click="SelectLocation" Width="20"/>
             </StackPanel>
-            <Separator/>
+
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
             <Button Click="CancelButton"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
             <Button Click="CreateButton" Content="Create" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsDefault="True"/>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+            <TextBlock Text="{Binding CreationMessage, Mode=OneWay}" HorizontalAlignment="Right" Margin="5,0"/>
+            <Separator/>
         </StackPanel>
     </DockPanel>
     

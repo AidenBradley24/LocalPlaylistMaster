@@ -7,16 +7,9 @@ using System.Xml.Serialization;
 
 namespace LocalPlaylistMaster.Backend
 {
-    [XmlRoot("PlaylistSet")]
-    public record PlaylistSet
+    [XmlRoot("PlaylistRecord")]
+    public record PlaylistRecord
     {
-        public PlaylistSet()
-        {
-            remotes = new();
-        }
-
         public string name;
-        public List<Remote> remotes;
-        // add tracks
     }
 }

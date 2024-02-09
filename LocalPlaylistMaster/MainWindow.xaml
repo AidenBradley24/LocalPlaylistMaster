@@ -17,15 +17,30 @@
                     <Separator />
                     <MenuItem Header="_Exit" />
                 </MenuItem>
+                <MenuItem Header="_Import">
+                    
+                </MenuItem>
+                <MenuItem Header="_Export"></MenuItem>
             </Menu>
             <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray"/>
             <StackPanel Orientation="Vertical" DockPanel.Dock = "Right" MinWidth="250" Background="Gray">
 
             </StackPanel>
             <ScrollViewer DockPanel.Dock="Left" MinWidth="100">
-                <StackPanel Orientation="Vertical">
-
-                </StackPanel>
+                <ListBox ItemsSource="{Binding playlistManager}" Grid.IsSharedSizeScope="True" HorizontalContentAlignment="Stretch" IsSynchronizedWithCurrentItem="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Key" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold"  />
+                                <TextBox Grid.Column="1" Text="{Binding Value }" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </ScrollViewer>
         </DockPanel>
     </Grid>

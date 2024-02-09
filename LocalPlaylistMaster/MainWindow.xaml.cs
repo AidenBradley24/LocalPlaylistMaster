@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using LocalPlaylistMaster.Backend;
+using System.Diagnostics;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,9 +18,12 @@ namespace LocalPlaylistMaster
     /// </summary>
     public partial class MainWindow : Window
     {
+        internal PlaylistManager? playlistManager;
+
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = this;
         }
 
         private void CreateNewPlaylist(object sender, RoutedEventArgs e)
@@ -27,10 +32,17 @@ namespace LocalPlaylistMaster
             {
                 Topmost = true,
                 Owner = this,
-                ResizeMode = ResizeMode.NoResize
+                ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
             };
 
             window.ShowDialog();
+        }
+        
+        public void InitializePlaylist(PlaylistManager playlist)
+        {
+            playlistManager = playlist;
+            Trace.WriteLine("YIPPEE");
         }
     }
 }

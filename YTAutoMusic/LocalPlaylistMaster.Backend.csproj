@@ -1,21 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>Library</OutputType>
         <TargetFramework>net7.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <RepositoryUrl>https://github.com/AidenBradley24/YTAutoMusic</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageTags>youtube-downloader;music-playlist</PackageTags>
-        <Description>Automaticly download and format a YouTube playlist as mp3 files and create a VLC playlist.</Description>
+        <RepositoryUrl></RepositoryUrl>
+        <RepositoryType></RepositoryType>
+        <PackageTags></PackageTags>
+        <Description></Description>
         <Authors>Aiden Bradley</Authors>
         <Title>YTAutoMusic</Title>
-        <StartupObject>YTAutoMusic.Program</StartupObject>
+        <StartupObject></StartupObject>
         <SignAssembly>False</SignAssembly>
-        <ApplicationIcon>Resources\logo.ico</ApplicationIcon>
-        <AssemblyVersion>1.4.2</AssemblyVersion>
-        <FileVersion>1.4.2</FileVersion>
+        <AssemblyVersion>0.1</AssemblyVersion>
+        <FileVersion>0.1</FileVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -25,10 +24,24 @@
         <DebugType>full</DebugType>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
         <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Update="SQL_Resources.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>SQL_Resources.resx</DependentUpon>
+      </Compile>
+    </ItemGroup>
+    <ItemGroup>
+      <EmbeddedResource Update="SQL_Resources.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>SQL_Resources.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
     <ItemGroup>
         <None Update="Dependencies\ffmpeg.exe">
