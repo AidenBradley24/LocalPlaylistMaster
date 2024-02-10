@@ -8,5 +8,5 @@
 	Description TEXT,
 	Rating INTEGER,
 	TimeInSeconds INTEGER,
-	RemoveMe BOOL -- remove when remote is gone
+	RemoveMe BOOL Default FALSE -- remove when remote is gone
 );

@@ -1,4 +1,5 @@
 ﻿using LocalPlaylistMaster.Backend;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using System.Windows;
@@ -16,7 +17,7 @@ namespace LocalPlaylistMaster
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         internal PlaylistManager? playlistManager;
 
@@ -43,6 +44,12 @@ namespace LocalPlaylistMaster
         {
             playlistManager = playlist;
             Trace.WriteLine("YIPPEE");
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

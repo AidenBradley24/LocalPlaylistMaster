@@ -22,7 +22,9 @@
                 </MenuItem>
                 <MenuItem Header="_Export"></MenuItem>
             </Menu>
-            <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray"/>
+            <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray">
+                <Image Source="{Binding StatusImage}"></Image><TextBlock Text="{Binding StatusText}"/>
+            </StackPanel>
             <StackPanel Orientation="Vertical" DockPanel.Dock = "Right" MinWidth="250" Background="Gray">
 
             </StackPanel>
