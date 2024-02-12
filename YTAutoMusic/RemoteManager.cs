@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,21 +12,29 @@ namespace LocalPlaylistMaster.Backend
     /// </summary>
     public abstract class RemoteManager
     {
-        protected DependencyProcessManager Dependencies { get; private set; }
+        protected DependencyProcessManager Dependencies { get; init; }
+        public RemoteSettings Settings { get; init; }
 
-        public RemoteManager(DependencyProcessManager dependencies)
+        public RemoteManager(DependencyProcessManager dependencies, RemoteSettings settings)
         {
             Dependencies = dependencies;
+            Settings = settings;
         }
 
-        public async Task<DirectoryInfo> ReadyMetadata(string link)
-        {
-            var dir = Directory.CreateTempSubdirectory();
-            await FetchMetadata(link, dir);
-            return dir;
-        }
+        /// <summary>
+        /// Fetches tracks from a remote server with unaltered metadata.
+        /// </summary>
+        /// <returns>Collection of track records</returns>
+        public abstract Task<(string playlistName, string playlistDescription, IEnumerable<Track> tracks)> FetchRemote();
 
-        protected abstract Task FetchMetadata(string link, DirectoryInfo downloadDir);
-        protected abstract Task DownloadAudio(string link, IEnumerable<string> remoteIDs, DirectoryInfo downloadDir);
+        /// <summary>
+        /// Downloads raw audio from remote.
+        /// </summary>
+        /// <param name="remoteIDs">Collection of track remoteIDs</param>
+        /// <returns>Directory with raw files marked with their remote ids and a file extension</returns>
+        public abstract Task<DirectoryInfo> DownloadAudio(IEnumerable<string> remoteIDs);
     }
+
+    public enum RemoteType { ytdlp }
+    public enum RemoteSettings { removeMe, locked }
 }

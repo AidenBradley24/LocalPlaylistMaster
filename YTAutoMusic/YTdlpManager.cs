@@ -1,32 +1,92 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LocalPlaylistMaster.Backend
 {
     public class YTdlpManager : RemoteManager
     {
-        public YTdlpManager(DependencyProcessManager dependencies) : base(dependencies)
+        private readonly string playlistLink;
+
+        public YTdlpManager(DependencyProcessManager dependencies, RemoteSettings settings, string playlistLink) : base(dependencies, settings)
         {
+            this.playlistLink = playlistLink;
         }
 
-        protected override async Task DownloadAudio(string link, IEnumerable<string> remoteIDs, DirectoryInfo downloadDir)
+        public override async Task<DirectoryInfo> DownloadAudio(IEnumerable<string> remoteIDs)
         {
+            // TODO only download given remote ids
+            // TODO rename downloaded files (or map them)
+
+            DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
-            process.StartInfo.Arguments = $"\"{link}\" -P \"{downloadDir.FullName}\" -f bestaudio --force-overwrites --yes-playlist";
+            process.StartInfo.Arguments = $"\"{playlistLink}\" -P \"{downloadDir.FullName}\" -f bestaudio --force-overwrites --yes-playlist";
             process.Start();
             await process.WaitForExitAsync();
+
+            return downloadDir;
         }
 
-        protected override async Task FetchMetadata(string link, DirectoryInfo downloadDir)
+        public override async Task<(string playlistName, string playlistDescription, IEnumerable<Track> tracks)> FetchRemote()
         {
+            DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
-            process.StartInfo.Arguments = $"\"{link}\" -P \"{downloadDir.FullName}\" --skip-download --write-info-json --write-playlist-metafiles";
+            process.StartInfo.Arguments = $"\"{playlistLink}\" -P \"{downloadDir.FullName}\" --skip-download --write-description --write-playlist-metafiles";
             process.Start();
             await process.WaitForExitAsync();
+
+            string playlistId = GetPlaylistId(playlistLink);
+
+            List<Track> tracks = new();
+            string playlistName = "playlist";
+            string playlistDescription = "";
+
+            foreach (FileInfo file in downloadDir.EnumerateFiles())
+            {
+                string id = GetURLTag(file.Name);
+                string name = GetNameWithoutURLTag(file.Name);
+                using var reader = file.OpenText();
+                string description = await reader.ReadToEndAsync();
+
+                if (id == playlistId)
+                {
+                    playlistName = name;
+                    playlistDescription = description;
+                    continue;
+                }
+
+                Track track = new(Track.UNINITIALIZED, name, Track.UNINITIALIZED, id, "", "",
+                    description, Track.UNINITIALIZED, Track.UNINITIALIZED, TrackSettings.none);
+                tracks.Add(track);
+            }
+
+            downloadDir.Delete(true);
+            return (playlistName, playlistDescription, tracks);
+        }
+
+        public static string GetNameWithoutURLTag(string name)
+        {
+            return name[..name.LastIndexOf('[')].Trim();
+        }
+
+        public static string GetURLTag(string name)
+        {
+            return name[(name.LastIndexOf('[') + 1)..name.LastIndexOf(']')];
+        }
+
+        public static string GetPlaylistId(string url)
+        {
+            string playlistID;
+            const string LIST_URL = "list=";
+            if (url.Contains('&'))
+            {
+                playlistID = url.Split('&').Where(s => s.StartsWith(LIST_URL)).First()[LIST_URL.Length..];
+            }
+            else
+            {
+                int listIndex = url.IndexOf(LIST_URL) + LIST_URL.Length;
+                playlistID = url[listIndex..];
+            }
+            return playlistID;
         }
     }
 }
