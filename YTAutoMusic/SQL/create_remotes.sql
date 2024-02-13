@@ -3,7 +3,7 @@
 	Name TEXT,
 	Description Text,
 	Link TEXT,
-	UseCount INTEGER,
+	TrackCount INTEGER,
 	Type INTEGER,
 	Settings INTEGER
 );

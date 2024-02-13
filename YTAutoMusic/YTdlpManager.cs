@@ -1,16 +1,10 @@
-﻿using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace LocalPlaylistMaster.Backend
 {
     public class YTdlpManager : RemoteManager
     {
-        private readonly string playlistLink;
-
-        public YTdlpManager(DependencyProcessManager dependencies, RemoteSettings settings, string playlistLink) : base(dependencies, settings)
-        {
-            this.playlistLink = playlistLink;
-        }
+        public YTdlpManager(Remote remote, DependencyProcessManager dependencies) : base(remote, dependencies) {}
 
         public override async Task<DirectoryInfo> DownloadAudio(IEnumerable<string> remoteIDs)
         {
@@ -19,27 +13,28 @@ namespace LocalPlaylistMaster.Backend
 
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
-            process.StartInfo.Arguments = $"\"{playlistLink}\" -P \"{downloadDir.FullName}\" -f bestaudio --force-overwrites --yes-playlist";
+            process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" -f bestaudio --force-overwrites --yes-playlist";
             process.Start();
             await process.WaitForExitAsync();
 
             return downloadDir;
         }
 
-        public override async Task<(string playlistName, string playlistDescription, IEnumerable<Track> tracks)> FetchRemote()
+        public override async Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote()
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
-            process.StartInfo.Arguments = $"\"{playlistLink}\" -P \"{downloadDir.FullName}\" --skip-download --write-description --write-playlist-metafiles";
+            process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --skip-download --write-description --write-playlist-metafiles";
             process.Start();
             await process.WaitForExitAsync();
 
-            string playlistId = GetPlaylistId(playlistLink);
+            string playlistId = GetPlaylistId(ExistingRemote.Link);
 
             List<Track> tracks = new();
             string playlistName = "playlist";
             string playlistDescription = "";
 
+            int counter = 0;
             foreach (FileInfo file in downloadDir.EnumerateFiles())
             {
                 string id = GetURLTag(file.Name);
@@ -57,10 +52,11 @@ namespace LocalPlaylistMaster.Backend
                 Track track = new(Track.UNINITIALIZED, name, Track.UNINITIALIZED, id, "", "",
                     description, Track.UNINITIALIZED, Track.UNINITIALIZED, TrackSettings.none);
                 tracks.Add(track);
+                counter++;
             }
 
             downloadDir.Delete(true);
-            return (playlistName, playlistDescription, tracks);
+            return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter, ExistingRemote.Type, ExistingRemote.Settings), tracks);
         }
 
         public static string GetNameWithoutURLTag(string name)

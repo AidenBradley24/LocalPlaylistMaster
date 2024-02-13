@@ -119,6 +119,12 @@ namespace LocalPlaylistMaster.Backend
             await command.ExecuteNonQueryAsync();
         }
 
+        /// <summary>
+        /// Creates a remote manager from an existing remote in the database.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public async Task<RemoteManager> GetRemote(int id)
         {
             using SQLiteCommand command = db.CreateCommand();
@@ -129,10 +135,11 @@ namespace LocalPlaylistMaster.Backend
             string link = reader.GetString("Link");
             RemoteType type = (RemoteType)reader.GetInt32("Type");
             RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
+            Remote existingRemote = new(id, "", "", link, Remote.UNINITIALIZED, type, settings);
 
             return type switch
             {
-                RemoteType.ytdlp => new YTdlpManager(dependencyProcessManager, settings, link),
+                RemoteType.ytdlp => new YTdlpManager(existingRemote, dependencyProcessManager),
                 _ => throw new Exception("Invalid remote type")
             };
         }
@@ -156,21 +163,56 @@ namespace LocalPlaylistMaster.Backend
             return tracks;
         }
 
+        /// <summary>
+        /// Fetch and update an existing remote and its tracks
+        /// </summary>
+        /// <param name="remote"></param>
+        /// <returns></returns>
         public async Task FetchRemote(int remote)
         {
-            RemoteManager manager = await GetRemote(remote);
-            (string playlistName, string playlistDescription, IEnumerable<Track> tracks)
-                = await manager.FetchRemote();
-
-            int count = await UpdateTracksWithRemote(tracks, remote);
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                RemoteManager manager = await GetRemote(remote);
+                (Remote fetchedRemote, IEnumerable<Track> tracks) = await manager.FetchRemote();
+                (var existingTracks, var newTracks) = await FilterExistingTracks(tracks);
+                await Injest(newTracks);
+                var unlockedTracks = await FilterUnlockedTracks(existingTracks);
+                await UpdateTracksWithRemote(unlockedTracks, remote);
+                await UpdateRemote(fetchedRemote, manager.ExistingRemote);
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
-        private async Task UpdateRemote(RemoteSettings settings, string remoteName, string remoteDescription, int trackCount)
+        /// <summary>
+        /// Syncs a fetched remote with the existing remote on the database
+        /// </summary>
+        /// <param name="fetchedRemote"></param>
+        /// <param name="existingRemote"></param>
+        /// <returns></returns>
+        private async Task UpdateRemote(Remote fetchedRemote, Remote existingRemote)
         {
-            if (!settings.HasFlag(RemoteSettings.locked))
-            {
+            Trace.Assert(fetchedRemote.Id == existingRemote.Id);
 
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "UPDATE Remotes SET TrackCount = @Count";
+            command.Parameters.AddWithValue("@Count", fetchedRemote.TrackCount);
+
+            if (!existingRemote.Settings.HasFlag(RemoteSettings.locked))
+            {
+                command.CommandText += ", Name = @Name, Description = @Description";
+                command.Parameters.AddWithValue("@Name", fetchedRemote.Name);
+                command.Parameters.AddWithValue("@Description", fetchedRemote.Description);
             }
+
+            command.CommandText += " WHERE Id = @Id";
+            command.Parameters.AddWithValue("@Id", existingRemote.Id);
+            await command.ExecuteNonQueryAsync();
         }
 
         private async Task<int> UpdateTracksWithRemote(IEnumerable<Track> tracks, int remote)
@@ -194,6 +236,33 @@ namespace LocalPlaylistMaster.Backend
             return updatedTrackCount + await UpdateTracks(tracks);
         }
 
+        /// <summary>
+        /// Filter out tracks which are locked in the database.
+        /// Tracks must already be in database
+        /// </summary>
+        /// <param name="tracks">Tracks to check</param>
+        /// <returns>Collection of unlocked tracks</returns>
+        private async Task<IEnumerable<Track>> FilterUnlockedTracks(IEnumerable<Track> tracks)
+        {
+            HashSet<int> unlocked = new();
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT Id FROM Tracks WHERE (Settings & @Flag) != 0";
+            command.Parameters.AddWithValue("@Flag", TrackSettings.locked);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                unlocked.Add(reader.GetInt32("Id"));
+            }
+
+            return tracks.Where(t => unlocked.Contains(t.Id));
+        }
+
+        /// <summary>
+        /// Update existing tracks with new information. Ignores the lock setting.
+        /// </summary>
+        /// <param name="tracks">Collection of tracks</param>
+        /// <returns>Number of updates</returns>
         public async Task<int> UpdateTracks(IEnumerable<Track> tracks)
         {
             int updatedTrackCount = 0;
@@ -232,6 +301,33 @@ namespace LocalPlaylistMaster.Backend
             }
 
             return updatedTrackCount;
+        }
+
+        private async Task<(IEnumerable<Track> existingTracks, IEnumerable<Track> newTracks)> FilterExistingTracks(IEnumerable<Track> allTracks)
+        {
+            List<Track> existingTracks = new();
+            List<Track> newTracks = new();
+
+            using (SQLiteCommand command = db.CreateCommand())
+            {
+                command.CommandText = "SELECT Id FROM Tracks WHERE Id = @Id";
+                command.Parameters.Add("@Id", DbType.Int32);
+                foreach (Track track in allTracks)
+                {
+                    command.Parameters["@Id"].Value = track.Id;
+                    object result = await command.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        existingTracks.Add(track);
+                    }
+                    else
+                    {
+                        newTracks.Add(track);
+                    }
+                }
+            }
+
+            return (existingTracks, newTracks);
         }
     }
 }

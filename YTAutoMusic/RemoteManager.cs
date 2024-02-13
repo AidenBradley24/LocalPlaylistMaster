@@ -1,31 +1,24 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LocalPlaylistMaster.Backend
+﻿namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// Manages download and syncing from remotes
     /// </summary>
     public abstract class RemoteManager
     {
+        internal Remote ExistingRemote { get; init; }
         protected DependencyProcessManager Dependencies { get; init; }
-        public RemoteSettings Settings { get; init; }
 
-        public RemoteManager(DependencyProcessManager dependencies, RemoteSettings settings)
+        public RemoteManager(Remote remote, DependencyProcessManager dependencies)
         {
             Dependencies = dependencies;
-            Settings = settings;
+            ExistingRemote = remote;
         }
 
         /// <summary>
         /// Fetches tracks from a remote server with unaltered metadata.
         /// </summary>
-        /// <returns>Collection of track records</returns>
-        public abstract Task<(string playlistName, string playlistDescription, IEnumerable<Track> tracks)> FetchRemote();
+        /// <returns>A remote record and a collection of track records</returns>
+        public abstract Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote();
 
         /// <summary>
         /// Downloads raw audio from remote.
@@ -33,8 +26,5 @@ namespace LocalPlaylistMaster.Backend
         /// <param name="remoteIDs">Collection of track remoteIDs</param>
         /// <returns>Directory with raw files marked with their remote ids and a file extension</returns>
         public abstract Task<DirectoryInfo> DownloadAudio(IEnumerable<string> remoteIDs);
-    }
-
-    public enum RemoteType { ytdlp }
-    public enum RemoteSettings { removeMe, locked }
+    }  
 }
