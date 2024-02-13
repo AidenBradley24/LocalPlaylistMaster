@@ -26,7 +26,7 @@ namespace LocalPlaylistMaster.Backend
             using Process process = Dependencies.CreateDlpProcess();
             process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --skip-download --write-description --write-playlist-metafiles";
             process.Start();
-            await process.WaitForExitAsync();
+            process.WaitForExit();
 
             string playlistId = GetPlaylistId(ExistingRemote.Link);
 
@@ -49,7 +49,7 @@ namespace LocalPlaylistMaster.Backend
                     continue;
                 }
 
-                Track track = new(Track.UNINITIALIZED, name, Track.UNINITIALIZED, id, "", "",
+                Track track = new(Track.UNINITIALIZED, name, ExistingRemote.Id, id, "", "",
                     description, Track.UNINITIALIZED, Track.UNINITIALIZED, TrackSettings.none);
                 tracks.Add(track);
                 counter++;

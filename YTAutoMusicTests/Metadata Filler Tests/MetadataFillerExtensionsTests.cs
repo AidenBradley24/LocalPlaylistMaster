@@ -1,6 +1,6 @@
-﻿using LocalPlaylistMaster;
+﻿using LocalPlaylistMaster.Backend;
 
-namespace YTAutoMusicTests.Metadata_Filler_Tests
+namespace BackendTest.Metadata_Filler_Tests
 {
     /// <summary>
     /// Tests <see cref="MetadataFillerExtensions"/>

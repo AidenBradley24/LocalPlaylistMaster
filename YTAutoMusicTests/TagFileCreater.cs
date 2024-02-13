@@ -1,4 +1,4 @@
-﻿namespace YTAutoMusicTests
+﻿namespace BackendTest
 {
     internal static class TagFileCreater
     {

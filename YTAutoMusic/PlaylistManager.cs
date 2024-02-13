@@ -69,13 +69,14 @@ namespace LocalPlaylistMaster.Backend
 
         public enum Status { ready, error, searching }
 
-        private async Task Injest(IEnumerable<Track> tracks) // TODO use a transaction
+        private async Task IngestTracks(IEnumerable<Track> tracks) // TODO use a transaction
         {
             using SQLiteCommand command = db.CreateCommand();
             StringBuilder sb = new("INSERT INTO Tracks (Name, Remote, RemoteId, Artists," +
-                " Album, Description, TimeInSeconds, Settings) VALUES\n");
+                " Album, Description, Rating, TimeInSeconds, Settings) VALUES\n");
 
             var e = tracks.GetEnumerator();
+            if (!e.MoveNext()) return;
 
             for (int i = 1; true; i++)
             {
@@ -85,31 +86,24 @@ namespace LocalPlaylistMaster.Backend
                 string art = $"@ART{i}";
                 string alb = $"@ALB{i}";
                 string des = $"@DES{i}";
+                string rat = $"@RAT{i}";
                 string tme = $"@TME{i}";
                 string set = $"@SET{i}";
-                sb.Append($"({n},{r},{rid},{art},{alb},{des},{tme},{set})");
+                sb.Append($"({n},{r},{rid},{art},{alb},{des},{rat},{tme},{set})");
 
                 Track track = e.Current;
                 bool end = !e.MoveNext();
                 if (!end) sb.Append(',');
 
-                SQLiteParameter param;
-                param = new SQLiteParameter(n, track.Name);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(r, track.Remote);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(rid, track.RemoteId);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(art, track.Artists);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(alb, track.Album);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(des, track.Description);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(tme, track.TimeInSeconds);
-                command.Parameters.Add(param);
-                param = new SQLiteParameter(set, track.Settings);
-                command.Parameters.Add(param);
+                command.Parameters.AddWithValue(n, track.Name);
+                command.Parameters.AddWithValue(r, track.Remote);
+                command.Parameters.AddWithValue (rid, track.RemoteId);
+                command.Parameters.AddWithValue(art, track.Artists);
+                command.Parameters.AddWithValue(alb, track.Album);
+                command.Parameters.AddWithValue(des, track.Description);
+                command.Parameters.AddWithValue(rat, track.Rating);
+                command.Parameters.AddWithValue(tme, track.TimeInSeconds);
+                command.Parameters.AddWithValue(set, (int)track.Settings);
 
                 if (end) break;
             }
@@ -132,16 +126,24 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Id", id);
 
             using var reader = await command.ExecuteReaderAsync();
-            string link = reader.GetString("Link");
-            RemoteType type = (RemoteType)reader.GetInt32("Type");
-            RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
-            Remote existingRemote = new(id, "", "", link, Remote.UNINITIALIZED, type, settings);
 
-            return type switch
+            if(await reader.ReadAsync())
             {
-                RemoteType.ytdlp => new YTdlpManager(existingRemote, dependencyProcessManager),
-                _ => throw new Exception("Invalid remote type")
-            };
+                string link = reader.GetString("Link");
+                RemoteType type = (RemoteType)reader.GetInt32("Type");
+                RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
+                Remote existingRemote = new(id, "", "", link, Remote.UNINITIALIZED, type, settings);
+
+                return type switch
+                {
+                    RemoteType.ytdlp => new YTdlpManager(existingRemote, dependencyProcessManager),
+                    _ => throw new Exception("Invalid remote type")
+                };
+            }
+            else
+            {
+                throw new Exception("Remote was not found in the database!");
+            }
         }
 
         public async Task<IEnumerable<Track>> GetTracks(int limit = 10)
@@ -152,13 +154,15 @@ namespace LocalPlaylistMaster.Backend
 
             using var reader = await command.ExecuteReaderAsync();
             List<Track> tracks = new();
-            do
+
+            while (await reader.ReadAsync())
             {
                 Track track = new(reader.GetInt32("Id"), reader.GetString("Name"),
-                    reader.GetInt32("Remote"), reader.GetString("RemoteId"), reader.GetString("Artists"),
-                    reader.GetString("Album"), reader.GetString("Description"), reader.GetInt32("Rating"),
-                    reader.GetInt32("TimeInSeconds"), (TrackSettings)reader.GetInt32("Settings"));
-            } while (await reader.NextResultAsync());
+                reader.GetInt32("Remote"), reader.GetString("RemoteId"), reader.GetString("Artists"),
+                reader.GetString("Album"), reader.GetString("Description"), reader.GetInt32("Rating"),
+                reader.GetInt32("TimeInSeconds"), (TrackSettings)reader.GetInt32("Settings"));
+                tracks.Add(track);
+            }
 
             return tracks;
         }
@@ -176,17 +180,44 @@ namespace LocalPlaylistMaster.Backend
                 RemoteManager manager = await GetRemote(remote);
                 (Remote fetchedRemote, IEnumerable<Track> tracks) = await manager.FetchRemote();
                 (var existingTracks, var newTracks) = await FilterExistingTracks(tracks);
-                await Injest(newTracks);
+                await IngestTracks(newTracks);
                 var unlockedTracks = await FilterUnlockedTracks(existingTracks);
                 await UpdateTracksWithRemote(unlockedTracks, remote);
                 await UpdateRemote(fetchedRemote, manager.ExistingRemote);
-                transaction.Commit();
             }
             catch
             {
                 transaction.Rollback();
                 throw;
             }
+
+            await transaction.CommitAsync();
+        }
+
+        public async Task IngestRemote(Remote remote)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, Type, Settings) " +
+                    "VALUES (@Name, @Description, @Link, @Type, @Settings)";
+
+                command.Parameters.AddWithValue("@Name", remote.Name);
+                command.Parameters.AddWithValue("@Description", remote.Description);
+                command.Parameters.AddWithValue("@Link", remote.Link);
+                command.Parameters.AddWithValue("@Type", (int)remote.Type);
+                command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
+
+                await command.ExecuteNonQueryAsync();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            await transaction.CommitAsync();
         }
 
         /// <summary>

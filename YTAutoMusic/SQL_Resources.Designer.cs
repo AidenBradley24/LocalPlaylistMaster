@@ -64,8 +64,11 @@ namespace LocalPlaylistMaster.Backend {
         ///   Looks up a localized string similar to CREATE TABLE Remotes (
         ///	Id INTEGER PRIMARY KEY,
         ///	Name TEXT,
+        ///	Description Text,
         ///	Link TEXT,
-        ///	UseCount INTEGER
+        ///	TrackCount INTEGER,
+        ///	Type INTEGER,
+        ///	Settings INTEGER
         ///);.
         /// </summary>
         internal static string create_remotes {
@@ -85,7 +88,7 @@ namespace LocalPlaylistMaster.Backend {
         ///	Description TEXT,
         ///	Rating INTEGER,
         ///	TimeInSeconds INTEGER,
-        ///	RemoveMe BOOL -- remove when remote is gone
+        ///	Settings INTEGER
         ///);.
         /// </summary>
         internal static string create_tracks {

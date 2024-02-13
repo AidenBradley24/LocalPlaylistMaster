@@ -44,6 +44,9 @@
       </EmbeddedResource>
     </ItemGroup>
     <ItemGroup>
+        <None Update="Dependencies\Dependencies_README.md">
+          <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
         <None Update="Dependencies\ffmpeg.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
