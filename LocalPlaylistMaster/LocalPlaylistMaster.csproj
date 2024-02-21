@@ -12,4 +12,10 @@
     <ProjectReference Include="..\YTAutoMusic\LocalPlaylistMaster.Backend.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="AddRemoteWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
 </Project>

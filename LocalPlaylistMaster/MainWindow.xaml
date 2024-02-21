@@ -18,34 +18,43 @@
                     <MenuItem Header="_Exit" />
                 </MenuItem>
                 <MenuItem Header="_Import">
-                    
+                    <MenuItem Header="_Remote" Click="AddRemote"/>
                 </MenuItem>
                 <MenuItem Header="_Export"></MenuItem>
             </Menu>
             <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray">
-                <Image Source="{Binding StatusImage}"></Image><TextBlock Text="{Binding StatusText}"/>
+                <Image Source="{Binding StatusImage}"></Image>
+                <TextBlock Text="{Binding StatusText}"/>
             </StackPanel>
             <StackPanel Orientation="Vertical" DockPanel.Dock = "Right" MinWidth="250" Background="Gray">
 
             </StackPanel>
-            <ScrollViewer DockPanel.Dock="Left" MinWidth="100">
-                <ListBox ItemsSource="{Binding playlistManager}" Grid.IsSharedSizeScope="True" HorizontalContentAlignment="Stretch" IsSynchronizedWithCurrentItem="True">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Key" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Name}" FontWeight="Bold"  />
-                                <TextBox Grid.Column="1" Text="{Binding Value }" />
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </ScrollViewer>
+
+            <Grid DockPanel.Dock="Left" Width="Auto">
+                <TabControl>
+                    <!-- Tab for Tracks -->
+                    <TabItem Header="Tracks">
+                        <Grid>
+                            <DataGrid ItemsSource="{Binding Tracks}" AutoGenerateColumns="True" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
+                                <Button Content="Previous" Margin="5" Command="{Binding PreviousPageTrackCommand}"/>
+                                <Button Content="Next" Margin="5" Command="{Binding NextPageTrackCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Tab for Remotes -->
+                    <TabItem Header="Remotes">
+                        <Grid>
+                            <DataGrid ItemsSource="{Binding Remotes}" AutoGenerateColumns="True" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
+                                <Button Content="Previous" Margin="5" Command="{Binding PreviousPageRemoteCommand}"/>
+                                <Button Content="Next" Margin="5" Command="{Binding NextPageRemoteCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
         </DockPanel>
     </Grid>
-
-
 </Window>

@@ -1,4 +1,6 @@
-﻿namespace LocalPlaylistMaster.Backend
+﻿using static LocalPlaylistMaster.Backend.ProgressModel;
+
+namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// Manages download and syncing from remotes
@@ -18,7 +20,7 @@
         /// Fetches tracks from a remote server with unaltered metadata.
         /// </summary>
         /// <returns>A remote record and a collection of track records</returns>
-        public abstract Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote();
+        public abstract Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote(IProgress<(ReportType type, object report)> reporter);
 
         /// <summary>
         /// Downloads raw audio from remote.

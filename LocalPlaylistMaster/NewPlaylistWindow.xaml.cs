@@ -14,6 +14,7 @@ namespace LocalPlaylistMaster
     {
         private string fileLocation;
         private string playlistName;
+        private DependencyProcessManager dependencyProcessManager;
 
         public string PlaylistName
         {
@@ -78,12 +79,13 @@ namespace LocalPlaylistMaster
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public NewPlaylistWindow()
+        public NewPlaylistWindow(DependencyProcessManager dependencyProcessManager)
         {
             InitializeComponent();
             DataContext = this;
             playlistName = "New Playlist";
             fileLocation = "";
+            this.dependencyProcessManager = dependencyProcessManager;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -139,7 +141,7 @@ namespace LocalPlaylistMaster
 
             try
             {
-                PlaylistManager manager = new(FullPath); // TODO add playlist name
+                PlaylistManager manager = new(FullPath, dependencyProcessManager); // TODO add playlist name
                 ((MainWindow)Owner).InitializePlaylist(manager);
             }
             catch

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -20,19 +21,36 @@ namespace LocalPlaylistMaster.Backend
             return downloadDir;
         }
 
-        public override async Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote()
+        public override async Task<(Remote remote, IEnumerable<Track> tracks)> FetchRemote(IProgress<(ReportType type, object report)> reporter)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
             process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --skip-download --write-description --write-playlist-metafiles";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.OutputDataReceived += (object sender, DataReceivedEventArgs args) => 
+            {
+                if (string.IsNullOrEmpty(args.Data)) return;
+                if (args.Data.StartsWith("[download] Downloading item "))
+                {
+                    reporter.Report((ReportType.DetailText, $"fetching remote\n{args.Data}"));
+                    string progText = args.Data["[download] Downloading item ".Length..];
+                    string[] vals = progText.Split("of");
+                    int progressValue = (int)(((float)int.Parse(vals[0].Trim()) / int.Parse(vals[1].Trim())) * 100);
+                    reporter.Report((ReportType.Progress, progressValue));
+                }
+            };
+            process.StartInfo.CreateNoWindow = true;
             process.Start();
-            process.WaitForExit();
+            process.BeginOutputReadLine();
+            await process.WaitForExitAsync();
 
             string playlistId = GetPlaylistId(ExistingRemote.Link);
 
             List<Track> tracks = new();
             string playlistName = "playlist";
             string playlistDescription = "";
+
+            reporter.Report((ReportType.DetailText, "fetching remote\nreading downloaded files"));
 
             int counter = 0;
             foreach (FileInfo file in downloadDir.EnumerateFiles())

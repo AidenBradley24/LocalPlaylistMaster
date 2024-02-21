@@ -1,0 +1,11 @@
+﻿<Window x:Class="LocalPlaylistMaster.ProgressDisplay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        Title="{Binding TitleText}" Height="200" Width="300">
+    <StackPanel Orientation="Vertical">
+        <Rectangle Height="20"/>
+        <ProgressBar Width="250" Height="35" Value="{Binding Progress, Mode=OneWay}" Margin="5"/>
+        <TextBlock Text="{Binding DetailText}" Height="100" Margin="10"/>
+    </StackPanel>
+</Window>

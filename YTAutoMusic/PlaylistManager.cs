@@ -8,13 +8,14 @@ using System.Xml.Serialization;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Data;
+using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// Manages all things playlist
     /// </summary>
-    public class PlaylistManager
+    public sealed class PlaylistManager
     {
         public PlaylistRecord Playlist { get; private set; }
         public Status MyStatus { get; private set; }
@@ -172,13 +173,17 @@ namespace LocalPlaylistMaster.Backend
         /// </summary>
         /// <param name="remote"></param>
         /// <returns></returns>
-        public async Task FetchRemote(int remote)
+        public async Task FetchRemote(int remote, IProgress<(ReportType type, object report)> reporter)
         {
             using SQLiteTransaction transaction = db.BeginTransaction();
             try
             {
+                reporter.Report((ReportType.TitleText, "Fetching Remote"));
+                reporter.Report((ReportType.DetailText, "pulling from database"));
                 RemoteManager manager = await GetRemote(remote);
-                (Remote fetchedRemote, IEnumerable<Track> tracks) = await manager.FetchRemote();
+                reporter.Report((ReportType.DetailText, "fetching remote"));
+                (Remote fetchedRemote, IEnumerable<Track> tracks) = await manager.FetchRemote(reporter);
+                reporter.Report((ReportType.DetailText, "processing"));
                 (var existingTracks, var newTracks) = await FilterExistingTracks(tracks);
                 await IngestTracks(newTracks);
                 var unlockedTracks = await FilterUnlockedTracks(existingTracks);
@@ -194,22 +199,25 @@ namespace LocalPlaylistMaster.Backend
             await transaction.CommitAsync();
         }
 
-        public async Task IngestRemote(Remote remote)
+        public async Task<int> IngestRemote(Remote remote)
         {
             using SQLiteTransaction transaction = db.BeginTransaction();
             try
             {
                 using SQLiteCommand command = db.CreateCommand();
-                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, Type, Settings) " +
-                    "VALUES (@Name, @Description, @Link, @Type, @Settings)";
+                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, TrackCount, Type, Settings) " +
+                    "VALUES (@Name, @Description, @Link, @TrackCount, @Type, @Settings); " +
+                    "SELECT LAST_INSERT_ROWID();";
 
                 command.Parameters.AddWithValue("@Name", remote.Name);
                 command.Parameters.AddWithValue("@Description", remote.Description);
                 command.Parameters.AddWithValue("@Link", remote.Link);
+                command.Parameters.AddWithValue("@TrackCount", 0);
                 command.Parameters.AddWithValue("@Type", (int)remote.Type);
                 command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
-
-                await command.ExecuteNonQueryAsync();
+                object? id = await command.ExecuteScalarAsync();
+                await transaction.CommitAsync();
+                return Convert.ToInt32(id);
             }
             catch
             {
@@ -217,7 +225,6 @@ namespace LocalPlaylistMaster.Backend
                 throw;
             }
 
-            await transaction.CommitAsync();
         }
 
         /// <summary>

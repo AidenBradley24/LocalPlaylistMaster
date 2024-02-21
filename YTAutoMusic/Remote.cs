@@ -6,9 +6,17 @@
     public record Remote(int Id, string Name, string Description, string Link, int TrackCount, RemoteType Type, RemoteSettings Settings)
     {
         public const int UNINITIALIZED = -1;
+
+        public static Remote GetUninitialized()
+        {
+            return new Remote(UNINITIALIZED, "", "", "", UNINITIALIZED, RemoteType.UNINITIALIZED, RemoteSettings.none);
+        }
     }
 
-    public enum RemoteType { ytdlp }
+    public enum RemoteType 
+    { 
+        UNINITIALIZED = -1, ytdlp
+    }
 
     [Flags]
     public enum RemoteSettings 

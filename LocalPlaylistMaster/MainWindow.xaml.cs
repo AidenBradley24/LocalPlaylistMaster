@@ -17,19 +17,44 @@ namespace LocalPlaylistMaster
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
-        internal PlaylistManager? playlistManager;
+        private readonly DependencyProcessManager dependencyProcessManager;
+        public PlaylistManager? PlaylistManager 
+        { 
+            get => ((MainWindowModel)DataContext).manager; 
+            set => ((MainWindowModel)DataContext).manager = value;
+        }
 
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = this;
+            DataContext = new MainWindowModel();
+            dependencyProcessManager = new DependencyProcessManager();
         }
 
         private void CreateNewPlaylist(object sender, RoutedEventArgs e)
         {
-            NewPlaylistWindow window = new()
+            NewPlaylistWindow window = new(dependencyProcessManager)
+            {
+                Topmost = true,
+                Owner = this,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            window.ShowDialog();
+        }
+
+        private void AddRemote(object sender, RoutedEventArgs e)
+        {
+            if(PlaylistManager == null)
+            {
+                MessageBox.Show("No playlist is open.\nCreate a playlist first.", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            AddRemoteWindow window = new(PlaylistManager)
             {
                 Topmost = true,
                 Owner = this,
@@ -42,14 +67,8 @@ namespace LocalPlaylistMaster
         
         public void InitializePlaylist(PlaylistManager playlist)
         {
-            playlistManager = playlist;
+            PlaylistManager = playlist;
             Trace.WriteLine("YIPPEE");
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

@@ -3,7 +3,7 @@
         <OutputType>Library</OutputType>
         <TargetFramework>net7.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
+        <Nullable>enable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl></RepositoryUrl>
         <RepositoryType></RepositoryType>
