@@ -1,6 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Text.Encodings.Web;
 using System.Windows;
 using LocalPlaylistMaster.Backend;
 
@@ -11,14 +9,14 @@ namespace LocalPlaylistMaster
     /// </summary>
     public class RemoteModel : INotifyPropertyChanged
     {
-        private Remote remote;
+        private readonly Remote remote;
 
         public string Name
         {
             get => remote.Name;
             set
             {
-                remote = new Remote(remote.Id, value, remote.Description, remote.Link, remote.TrackCount, remote.Type, remote.Settings);
+                remote.Name = value;
                 OnPropertyChanged(nameof(Name));
             }
         }
@@ -28,7 +26,7 @@ namespace LocalPlaylistMaster
             get => remote.Description;
             set
             {
-                remote = new Remote(remote.Id, remote.Name, value, remote.Link, remote.TrackCount, remote.Type, remote.Settings);
+                remote.Description = value;
                 OnPropertyChanged(nameof(Description));
             }
         }
@@ -38,7 +36,7 @@ namespace LocalPlaylistMaster
             get => remote.Link;
             set
             {
-                remote = new Remote(remote.Id, remote.Name, remote.Description, value, remote.TrackCount, remote.Type, remote.Settings);
+                remote.Link = value;
                 OnPropertyChanged(nameof(Link));
                 OnPropertyChanged(nameof(AutomaticTypeLabel));
             }
@@ -49,7 +47,7 @@ namespace LocalPlaylistMaster
             get => remote.Type;
             set
             {
-                remote = new Remote(remote.Id, remote.Name, remote.Description, remote.Link, remote.TrackCount, value, remote.Settings);
+                remote.Type = value;
                 OnPropertyChanged(nameof(Type));
             }
         }
@@ -93,7 +91,7 @@ namespace LocalPlaylistMaster
 
         public RemoteModel()
         {
-            remote = Remote.GetUninitialized();
+            remote = new();
         }
 
         public Remote? Export()
@@ -113,7 +111,7 @@ namespace LocalPlaylistMaster
                 remote.Settings.HasFlag(RemoteSettings.removeMe) ? RemoteSettings.removeMe : 0 |
                 (Locked ? RemoteSettings.locked : 0);
 
-            remote = new Remote(remote.Id, remote.Name, remote.Description, remote.Link, remote.TrackCount, remote.Type, settings);
+            remote.Settings = settings;
             return remote;
         }
 

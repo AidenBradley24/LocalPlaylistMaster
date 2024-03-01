@@ -3,6 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         Title="{Binding TitleText}" Height="200" Width="300">
+    <Window.Resources>
+        <Style x:Key="CustomWindowStyle" TargetType="Window">
+            <Setter Property="WindowStyle" Value="None" />
+            <Setter Property="ResizeMode" Value="NoResize" />
+            <Setter Property="ShowInTaskbar" Value="False" />
+        </Style>
+    </Window.Resources>
+    <Window.Style>
+        <StaticResource ResourceKey="CustomWindowStyle" />
+    </Window.Style>
     <StackPanel Orientation="Vertical">
         <Rectangle Height="20"/>
         <ProgressBar Width="250" Height="35" Value="{Binding Progress, Mode=OneWay}" Margin="5"/>

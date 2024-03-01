@@ -2,17 +2,37 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:LocalPlaylistMaster"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:ValueConverters="clr-namespace:LocalPlaylistMaster.ValueConverters"
         mc:Ignorable="d"
         Title="Local Playlist Master" Height="450" Width="800">
-
+    <Window.Resources>
+        <ValueConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="False">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="DarkBlue"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid>
         <DockPanel LastChildFill = "True">
             <Menu DockPanel.Dock="Top">
                 <MenuItem Header="_File">
                     <MenuItem Header="_New" Click="CreateNewPlaylist"/>
-                    <MenuItem Header="_Open" />
+                    <MenuItem Header="_Open" Click="OpenExistingPlaylist"/>
                     <MenuItem Header="_Save" />
                     <Separator />
                     <MenuItem Header="_Exit" />
@@ -26,35 +46,104 @@
                 <Image Source="{Binding StatusImage}"></Image>
                 <TextBlock Text="{Binding StatusText}"/>
             </StackPanel>
-            <StackPanel Orientation="Vertical" DockPanel.Dock = "Right" MinWidth="250" Background="Gray">
 
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <!-- First panel -->
+                <Border Grid.Column="0" Background="LightBlue" Margin="5" Width="Auto">
+                    <Grid>
+                        <TabControl>
+                            <!-- Tab for Tracks -->
+                            <TabItem Header="Tracks">
+                                <Grid>
+                                    <DataGrid x:Name="trackGrid" ItemsSource="{Binding Tracks}" CanUserReorderColumns="False" 
+                                              AutoGenerateColumns="False" IsReadOnly="True"
+                                              SelectionChanged="TrackGrid_SelectionChanged"
+                                              SelectionMode="Extended" SelectionUnit="FullRow">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                            <DataGridTextColumn Header="Album" Binding="{Binding Album}"/>
+                                            <DataGridTextColumn Header="Artists" Binding="{Binding Artists}"/>
+                                            <DataGridTextColumn Header="Length" Binding="{Binding LengthString}"/>
+                                            <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
+                                        <Button Content="Previous" Margin="5" Command="{Binding PreviousPageTrackCommand}"/>
+                                        <Button Content="Next" Margin="5" Command="{Binding NextPageTrackCommand}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </TabItem>
 
-            <Grid DockPanel.Dock="Left" Width="Auto">
-                <TabControl>
-                    <!-- Tab for Tracks -->
-                    <TabItem Header="Tracks">
-                        <Grid>
-                            <DataGrid ItemsSource="{Binding Tracks}" AutoGenerateColumns="True" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
-                                <Button Content="Previous" Margin="5" Command="{Binding PreviousPageTrackCommand}"/>
-                                <Button Content="Next" Margin="5" Command="{Binding NextPageTrackCommand}"/>
+                            <!-- Tab for Remotes -->
+                            <TabItem Header="Remotes">
+                                <Grid>
+                                    <DataGrid ItemsSource="{Binding Remotes}" AutoGenerateColumns="True" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
+                                        <Button Content="Previous" Margin="5" Command="{Binding PreviousPageRemoteCommand}"/>
+                                        <Button Content="Next" Margin="5" Command="{Binding NextPageRemoteCommand}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+                </Border>
+                <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
+
+                <!-- Second panel -->
+                <Border Grid.Column="2" Background="LightGray" Margin="5" Width="Auto">
+                    <DockPanel Visibility="{Binding IsItemSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
+                            <TextBlock Text="{Binding SelectedText}"/>
+                            <Rectangle Height="10"/>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Name:" Width="100"/>
+                                <TextBox Text="{Binding EditName, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
                             </StackPanel>
-                        </Grid>
-                    </TabItem>
-
-                    <!-- Tab for Remotes -->
-                    <TabItem Header="Remotes">
-                        <Grid>
-                            <DataGrid ItemsSource="{Binding Remotes}" AutoGenerateColumns="True" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
-                                <Button Content="Previous" Margin="5" Command="{Binding PreviousPageRemoteCommand}"/>
-                                <Button Content="Next" Margin="5" Command="{Binding NextPageRemoteCommand}"/>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Description:" Width="100"/>
+                                <RichTextBox Width="280" Height="100" HorizontalAlignment="Left" AcceptsReturn="True" AcceptsTab="True">
+                                    <FlowDocument>
+                                        <Paragraph>
+                                            <Run Text="{Binding EditDescription, Mode=TwoWay}"/>
+                                        </Paragraph>
+                                    </FlowDocument>
+                                </RichTextBox>
                             </StackPanel>
-                        </Grid>
-                    </TabItem>
-                </TabControl>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Link:" Width="100"/>
+                                <TextBox Text="{Binding EditLink, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Additional Settings:" Width="120"/>
+                                <StackPanel>
+                                    <CheckBox Content="Locked" IsThreeState="True" IsChecked="{Binding EditLocked}" PreviewMouseDown="CheckBox_DontAllowIndeterminate">
+                                        <CheckBox.ToolTip>
+                                            <ToolTip Content="When checked, modifications from remote will be ignored."/>
+                                        </CheckBox.ToolTip>
+                                    </CheckBox>
+                                    <!-- Add more CheckBoxes for additional settings -->
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
+                            <Button Click="CancelItemUpdate"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
+                            <Button Click="ConfirmItemUpdate" Content="Update" Padding="20,8" Margin="5" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+                            <TextBlock Text="{Binding CreationMessage, Mode=OneWay}" HorizontalAlignment="Right" Margin="5,0"/>
+                            <Separator/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
             </Grid>
+            
+            
         </DockPanel>
     </Grid>
 </Window>

@@ -141,7 +141,9 @@ namespace LocalPlaylistMaster
 
             try
             {
-                PlaylistManager manager = new(FullPath, dependencyProcessManager); // TODO add playlist name
+                PlaylistManager manager = new(FullPath, dependencyProcessManager);
+                manager.Playlist.name = PlaylistName;
+                manager.UpdatePlaylistRecord();
                 ((MainWindow)Owner).InitializePlaylist(manager);
             }
             catch

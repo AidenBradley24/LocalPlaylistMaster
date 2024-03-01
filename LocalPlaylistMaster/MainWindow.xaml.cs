@@ -1,16 +1,12 @@
 ﻿using LocalPlaylistMaster.Backend;
-using System.ComponentModel;
+using Microsoft.Win32;
+using System.Collections;
+using System.Data;
 using System.Diagnostics;
-using System.Text;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Linq;
 
 namespace LocalPlaylistMaster
 {
@@ -22,14 +18,16 @@ namespace LocalPlaylistMaster
         private readonly DependencyProcessManager dependencyProcessManager;
         public PlaylistManager? PlaylistManager 
         { 
-            get => ((MainWindowModel)DataContext).manager; 
-            set => ((MainWindowModel)DataContext).manager = value;
+            get => Model.manager; 
+            set => Model.manager = value;
         }
+
+        internal MainWindowModel Model { get => DataContext as MainWindowModel ?? throw new Exception(); }
 
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainWindowModel();
+            DataContext = new MainWindowModel(this);
             dependencyProcessManager = new DependencyProcessManager();
         }
 
@@ -63,12 +61,70 @@ namespace LocalPlaylistMaster
             };
 
             window.ShowDialog();
+            Model.RefreshTracks();
         }
         
         public void InitializePlaylist(PlaylistManager playlist)
         {
             PlaylistManager = playlist;
             Trace.WriteLine("YIPPEE");
+        }
+
+        private void OpenExistingPlaylist(object sender, RoutedEventArgs e)
+        {
+            OpenFolderDialog openFolderDialog = new()
+            {
+                Multiselect = false,
+                ValidateNames = true,
+                DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                Title = "Select music database folder",
+            };
+
+            if (openFolderDialog.ShowDialog(this) ?? false)
+            {
+                DirectoryInfo dir = new(openFolderDialog.FolderName);
+                if (!dir.Exists)
+                {
+                    MessageBox.Show("Directory doesn't exist", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    PlaylistManager = new PlaylistManager(dir.FullName, dependencyProcessManager);
+                    Model.RefreshTracks();
+                }
+                catch (Exception ex)
+                {
+                    PlaylistManager = null;
+                    Model.RefreshTracks();
+                    MessageBox.Show(ex.Message, "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void TrackGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Model.DisplaySelection(trackGrid.SelectedItems.Cast<Track>());
+        }
+
+        private void CancelItemUpdate(object sender, RoutedEventArgs e)
+        {
+            Model.CancelItemUpdate();
+        }
+
+        private void ConfirmItemUpdate(object sender, RoutedEventArgs e)
+        {
+            Model.ConfirmItemUpdate();            
+        }
+
+        private void CheckBox_DontAllowIndeterminate(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is CheckBox checkBox && checkBox.IsThreeState && checkBox.IsChecked == true)
+            {
+                checkBox.IsChecked = false;
+                e.Handled = true;
+            }
         }
     }
 }

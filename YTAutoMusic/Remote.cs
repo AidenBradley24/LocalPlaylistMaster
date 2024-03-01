@@ -3,13 +3,37 @@
     /// <summary>
     /// A bundle of data related to a remote playlist.
     /// </summary>
-    public record Remote(int Id, string Name, string Description, string Link, int TrackCount, RemoteType Type, RemoteSettings Settings)
+    public record Remote
     {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string Link { get; set; }
+        public int TrackCount { get; set; }
+        public RemoteType Type { get; set; }
+        public RemoteSettings Settings { get; set; }
+
         public const int UNINITIALIZED = -1;
 
-        public static Remote GetUninitialized()
+        public Remote(int id, string name, string description, string link, int trackCount, RemoteType type, RemoteSettings settings)
         {
-            return new Remote(UNINITIALIZED, "", "", "", UNINITIALIZED, RemoteType.UNINITIALIZED, RemoteSettings.none);
+            Id = id;
+            Name = name;
+            Description = description;
+            Link = link;
+            TrackCount = trackCount;
+            Type = type;
+            Settings = settings;
+        }
+
+        public Remote()
+        {
+            Id = UNINITIALIZED;
+            Name = "";
+            Description = "";
+            Link = "";
+            Type = RemoteType.UNINITIALIZED;
+            Settings = RemoteSettings.none;
         }
     }
 

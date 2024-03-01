@@ -22,6 +22,7 @@ namespace LocalPlaylistMaster.Backend
 
         private readonly SQLiteConnection db;
         private readonly DependencyProcessManager dependencyProcessManager;
+        private readonly FileInfo hostFile;
 
         public PlaylistManager(string folderPath, DependencyProcessManager dependencies)
         {
@@ -29,23 +30,31 @@ namespace LocalPlaylistMaster.Backend
             Directory.CreateDirectory(folderPath);
 
             string dbPath = Path.Join(folderPath, "playlist.db");
-            SQLiteConnection.CreateFile(dbPath);
             db = new SQLiteConnection($"Data Source={dbPath}");
-            db.Open();
 
-            string hostFile = Path.Join(folderPath, "host");
-            if (File.Exists(hostFile))
+            hostFile = new(Path.Join(folderPath, "host"));
+            if (File.Exists(hostFile.FullName))
             {
+                if (!File.Exists(dbPath))
+                {
+                    throw new FileNotFoundException($"'{dbPath}' does not exist");
+                }
+
+                db.Open();
+
                 XmlSerializer serializer = new(typeof(PlaylistRecord));
-                using FileStream stream = new(hostFile, FileMode.Open);
-                Playlist = (PlaylistRecord)serializer.Deserialize(stream);
+                using FileStream stream = new(hostFile.FullName, FileMode.Open);
+                Playlist = serializer.Deserialize(stream) as PlaylistRecord ?? throw new Exception("Invalid host file");
             }
             else
             {
                 Playlist = new();
                 XmlSerializer serializer = new(typeof(PlaylistRecord));
-                using FileStream stream = new(hostFile, FileMode.Create);
+                using FileStream stream = new(hostFile.FullName, FileMode.Create);
                 serializer.Serialize(stream, Playlist);
+
+                SQLiteConnection.CreateFile(dbPath);
+                db.Open();
 
                 using (SQLiteCommand command = db.CreateCommand())
                 {
@@ -63,8 +72,16 @@ namespace LocalPlaylistMaster.Backend
             MyStatus = Status.ready;
         }
 
+        public void UpdatePlaylistRecord()
+        {
+            XmlSerializer serializer = new(typeof(PlaylistRecord));
+            using FileStream stream = new(hostFile.FullName, FileMode.Create);
+            serializer.Serialize(stream, Playlist);
+        }
+
         ~PlaylistManager()
         {
+            UpdatePlaylistRecord();
             db?.Close();
         }
 
@@ -133,8 +150,13 @@ namespace LocalPlaylistMaster.Backend
                 string link = reader.GetString("Link");
                 RemoteType type = (RemoteType)reader.GetInt32("Type");
                 RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
-                Remote existingRemote = new(id, "", "", link, Remote.UNINITIALIZED, type, settings);
-
+                Remote existingRemote = new()
+                {
+                    Id = id,
+                    Link = link,
+                    Type = type,
+                    Settings = settings
+                };
                 return type switch
                 {
                     RemoteType.ytdlp => new YTdlpManager(existingRemote, dependencyProcessManager),
@@ -182,13 +204,14 @@ namespace LocalPlaylistMaster.Backend
                 reporter.Report((ReportType.DetailText, "pulling from database"));
                 RemoteManager manager = await GetRemote(remote);
                 reporter.Report((ReportType.DetailText, "fetching remote"));
-                (Remote fetchedRemote, IEnumerable<Track> tracks) = await manager.FetchRemote(reporter);
-                reporter.Report((ReportType.DetailText, "processing"));
-                (var existingTracks, var newTracks) = await FilterExistingTracks(tracks);
+                (Remote fetchedRemote, IEnumerable<Track> fetchedTracks) = await manager.FetchRemote(reporter);
+                reporter.Report((ReportType.DetailText, "updating database"));
+                await UpdateTracksRemote(fetchedTracks, remote);
+                (var existingTracks, var newTracks) = await FilterExistingTracks(fetchedTracks);
                 await IngestTracks(newTracks);
                 var unlockedTracks = await FilterUnlockedTracks(existingTracks);
-                await UpdateTracksWithRemote(unlockedTracks, remote);
                 await UpdateRemote(fetchedRemote, manager.ExistingRemote);
+                await UpdateTracks(unlockedTracks);
             }
             catch
             {
@@ -253,15 +276,15 @@ namespace LocalPlaylistMaster.Backend
             await command.ExecuteNonQueryAsync();
         }
 
-        private async Task<int> UpdateTracksWithRemote(IEnumerable<Track> tracks, int remote)
+        private async Task<int> UpdateTracksRemote(IEnumerable<Track> fetchedTracks, int remote)
         {
             int updatedTrackCount = 0;
 
             // remove remote from orphaned tracks
             using (SQLiteCommand command = db.CreateCommand())
             {
-                var idPlaceholders = string.Join(",", tracks.Select((_, index) => $"@Id{index}"));
-                var idParameters = tracks.Select((t, index) => new SQLiteParameter($"@Id{index}", t.Id)).ToArray();
+                var idPlaceholders = string.Join(",", fetchedTracks.Select((_, index) => $"@Id{index}"));
+                var idParameters = fetchedTracks.Select((t, index) => new SQLiteParameter($"@Id{index}", t.Id)).ToArray();
 
                 command.CommandText = $"UPDATE Tracks SET Remote = @NewRemote WHERE Remote = @Remote AND Id NOT IN ({idPlaceholders})";
                 command.Parameters.AddWithValue("@Remote", remote);
@@ -271,7 +294,7 @@ namespace LocalPlaylistMaster.Backend
             }
 
             Trace.WriteLine($"Orphaned {updatedTrackCount} remotes with remote #{remote}");
-            return updatedTrackCount + await UpdateTracks(tracks);
+            return updatedTrackCount + await UpdateTracks(fetchedTracks);
         }
 
         /// <summary>
@@ -297,7 +320,7 @@ namespace LocalPlaylistMaster.Backend
         }
 
         /// <summary>
-        /// Update existing tracks with new information. Ignores the lock setting.
+        /// Update existing tracks with new information. Ignores the lock setting. DOES NOT SET REMOTE
         /// </summary>
         /// <param name="tracks">Collection of tracks</param>
         /// <returns>Number of updates</returns>
@@ -309,7 +332,6 @@ namespace LocalPlaylistMaster.Backend
             {
                 StringBuilder sb = new("UPDATE TRACKS SET ");
                 sb.Append("Name = @Name, ");
-                sb.Append("Remote = @Remote, ");
                 sb.Append("RemoteId = @RemoteId, ");
                 sb.Append("Artists = @Artists, ");
                 sb.Append("Album = @Album, ");
@@ -324,7 +346,6 @@ namespace LocalPlaylistMaster.Backend
                 {
                     command.Parameters.Clear();
                     command.Parameters.AddWithValue("@Name", track.Name);
-                    command.Parameters.AddWithValue("@Remote", track.Remote);
                     command.Parameters.AddWithValue("@RemoteId", track.RemoteId);
                     command.Parameters.AddWithValue("@Artists", track.Artists);
                     command.Parameters.AddWithValue("@Album", track.Album);
@@ -353,7 +374,7 @@ namespace LocalPlaylistMaster.Backend
                 foreach (Track track in allTracks)
                 {
                     command.Parameters["@Id"].Value = track.Id;
-                    object result = await command.ExecuteScalarAsync();
+                    object? result = await command.ExecuteScalarAsync();
                     if (result != null && result != DBNull.Value)
                     {
                         existingTracks.Add(track);

@@ -67,14 +67,21 @@ namespace LocalPlaylistMaster.Backend
                     continue;
                 }
 
-                Track track = new(Track.UNINITIALIZED, name, ExistingRemote.Id, id, "", "",
-                    description, Track.UNINITIALIZED, Track.UNINITIALIZED, TrackSettings.none);
+                Track track = new()
+                {
+                    Name = name,
+                    Remote = ExistingRemote.Id,
+                    RemoteId = id,
+                    Description = description,
+                };
+
                 tracks.Add(track);
                 counter++;
             }
 
             downloadDir.Delete(true);
-            return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter, ExistingRemote.Type, ExistingRemote.Settings), tracks);
+            return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter,
+                ExistingRemote.Type, ExistingRemote.Settings), tracks);
         }
 
         public static string GetNameWithoutURLTag(string name)
