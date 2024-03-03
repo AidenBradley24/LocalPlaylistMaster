@@ -11,6 +11,9 @@ namespace LocalPlaylistMaster
         public MainWindow Host { get; init; }
         public PlaylistManager? manager;
 
+        private Dictionary<int, string>? remoteReference;
+        public Dictionary<int, string>? RemoteReference => remoteReference;
+
         private ObservableCollection<Track> tracks;
         public ObservableCollection<Track> Tracks
         {
@@ -19,6 +22,17 @@ namespace LocalPlaylistMaster
             {
                 tracks = value;
                 OnPropertyChanged(nameof(Tracks));
+            }
+        }
+
+        private ObservableCollection<Remote> remotes;
+        public ObservableCollection<Remote> Remotes
+        {
+            get { return remotes; }
+            set
+            {
+                remotes = value;
+                OnPropertyChanged(nameof(Remotes));
             }
         }
 
@@ -48,6 +62,10 @@ namespace LocalPlaylistMaster
             }
         }
 
+        private const int VIEW_SIZE = 50;
+        private int currentTrackOffset = 0;
+        private int currentRemoteOffset = 0;
+
         #region Edit Records Properties
 
         CollectionPropertyManager? propertyManager;
@@ -70,7 +88,7 @@ namespace LocalPlaylistMaster
 
         public string EditName
         {
-            get => (string)propertyManager?.GetValue(nameof(EditName)) ?? "...";
+            get => (string?)propertyManager?.GetValue(nameof(EditName)) ?? "...";
             set
             {
                 propertyManager?.SetValue(nameof(EditName), value);
@@ -80,7 +98,7 @@ namespace LocalPlaylistMaster
 
         public string EditDescription
         {
-            get => (string)propertyManager?.GetValue(nameof(EditDescription)) ?? "...";
+            get => (string?)propertyManager?.GetValue(nameof(EditDescription)) ?? "...";
             set
             {
                 propertyManager?.SetValue(nameof(EditDescription), value);
@@ -90,7 +108,7 @@ namespace LocalPlaylistMaster
 
         public string EditLink
         {
-            get => (string)propertyManager?.GetValue(nameof(EditDescription)) ?? "...";
+            get => (string?)propertyManager?.GetValue(nameof(EditDescription)) ?? "...";
             set
             {
                 propertyManager?.SetValue(nameof(EditLink), value);
@@ -98,6 +116,25 @@ namespace LocalPlaylistMaster
             }
         }
 
+        public string EditAlbum
+        {
+            get => (string?)(propertyManager?.GetValue(nameof(EditAlbum))) ?? "...";
+            set
+            {
+                propertyManager?.SetValue(nameof(EditAlbum), value);
+                OnPropertyChanged(nameof(EditAlbum));
+            }
+        }
+
+        public string EditArtists
+        {
+            get => (string?)(propertyManager?.GetValue(nameof(EditArtists))) ?? "...";
+            set
+            {
+                propertyManager?.SetValue(nameof(EditArtists), value);
+                OnPropertyChanged(nameof(EditArtists));
+            }
+        }
 
         public bool? EditLocked
         {
@@ -111,65 +148,104 @@ namespace LocalPlaylistMaster
 
         #endregion
 
-        // Implement commands for navigating pages
-        public ICommand PreviousPageTrackCommand { get; }
-        public ICommand NextPageTrackCommand { get; }
+        public ICommand PreviousPageCommand { get; }
+        public ICommand NextPageCommand { get; }
 
-        // Constructor
         public MainWindowModel(MainWindow host)
         {
             Host = host;
-            PreviousPageTrackCommand = new RelayCommand(PreviousPageTrack, CanNavigatePreviousTrack);
-            NextPageTrackCommand = new RelayCommand(NextPageTrack, CanNavigateNextTrack);
+            PreviousPageCommand = new RelayCommand(PreviousPage, CanNavigatePrevious);
+            NextPageCommand = new RelayCommand(NextPage, CanNavigateNext);
             tracks = [];
+            remotes = [];
         }
 
-        // Method to load initial tracks
         public void RefreshTracks()
         {
-            // Fetch tracks from the database or wherever you store them
-            // For example:
-            // Tracks = new ObservableCollection<Track>(YourDatabase.GetTracks(pageSize, pageNumber));
-            // PageSize and PageNumber can be managed based on how you fetch data
-
             if (manager == null)
             {
                 Tracks = [];
                 return;
             }
 
-            var task = manager.GetTracks();
+            var task = manager.GetTracks(VIEW_SIZE, currentTrackOffset);
             task.Wait(); // TODO add loading bar
-
             Tracks = new ObservableCollection<Track>(task.Result);
+
+            var remoteReferenceTask = manager.GetRemoteNames(task.Result.Select(t => t.Remote));
+            remoteReferenceTask.Wait();
+            remoteReference = remoteReferenceTask.Result;
+
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
         }
 
-        // Method to navigate to previous page of tracks
-        private void PreviousPageTrack()
+        public void RefreshRemotes()
         {
-            // TODO Implement logic to navigate to previous page of tracks
+            if (manager == null)
+            {
+                Remotes = [];
+                return;
+            }
+
+            var task = manager.GetRemotes(VIEW_SIZE, currentRemoteOffset);
+            task.Wait(); // TODO add loading bar
+
+            Remotes = new ObservableCollection<Remote>(task.Result);
+            Host.trackGrid.SelectedItems.Clear();
+            OnPropertyChanged(nameof(Remotes));
         }
 
-        // Method to check if navigating to previous page of tracks is possible
-        private bool CanNavigatePreviousTrack()
+        private void PreviousPage()
         {
-            // TODO Implement logic to check if navigating to previous page of tracks is possible
-            return true; // Return true or false based on your logic
+            switch(Host.CurrentTab.Name)
+            {
+                case "tracksTab":
+                    currentTrackOffset -= VIEW_SIZE;
+                    RefreshTracks();
+                    break;
+                case "remotesTab":
+                    currentRemoteOffset -= VIEW_SIZE;
+                    break;
+            }
         }
 
-        // Method to navigate to next page of tracks
-        private void NextPageTrack()
+        private bool CanNavigatePrevious()
         {
-            // TODO Implement logic to navigate to next page of tracks
+            if (manager == null) return false;
+
+            return Host.CurrentTab.Name switch
+            {
+                "tracksTab" => currentTrackOffset > 0,
+                "remotesTab" => currentRemoteOffset > 0,
+                _ => true,
+            };
         }
 
-        // Method to check if navigating to next page of tracks is possible
-        private bool CanNavigateNextTrack()
+        private void NextPage()
         {
-            // TODO Implement logic to check if navigating to next page of tracks is possible
-            return true; // Return true or false based on your logic
+            switch (Host.CurrentTab.Name)
+            {
+                case "tracksTab":
+                    currentTrackOffset += VIEW_SIZE;
+                    RefreshTracks();
+                    break;
+                case "remotesTab":
+                    currentRemoteOffset += VIEW_SIZE;
+                    break;
+            }
+        }
+
+        private bool CanNavigateNext()
+        {
+            if (manager == null) return false;
+
+            return Host.CurrentTab.Name switch
+            {
+                "tracksTab" => currentTrackOffset + VIEW_SIZE < manager.GetTrackCount(),
+                "remotesTab" => currentRemoteOffset + VIEW_SIZE < manager.GetRemoteCount(),
+                _ => true,
+            };
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -235,8 +311,8 @@ namespace LocalPlaylistMaster
 
             IsItemSelected = true;
 
-            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLocked)];
-            string[] ACTUAL_NAMES = [nameof(Track.Name), nameof(Track.Description), nameof(Track.Locked)];
+            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLocked), nameof(EditArtists), nameof(EditAlbum)];
+            string[] ACTUAL_NAMES = [nameof(Track.Name), nameof(Track.Description), nameof(Track.Locked), nameof(Track.Artists), nameof(Track.Album)];
 
             propertyManager = new(typeof(Track), trackSelection, EDIT_NAMES, ACTUAL_NAMES);
             foreach (string edit in EDIT_NAMES)
@@ -280,7 +356,6 @@ namespace LocalPlaylistMaster
                 propertyManager = null;
                 RefreshTracks();
             }
-
         }
     }
 }

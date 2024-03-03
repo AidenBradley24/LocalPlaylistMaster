@@ -10,7 +10,7 @@ namespace LocalPlaylistMaster
     public class CollectionPropertyManager
     {
         private readonly IEnumerable collection;
-        private readonly List<(string e, string a, object val)> commons = [];
+        private readonly List<(string e, string a, object? val)> commons = [];
         private readonly List<(string e, string a)> diffs = [];
         private bool pendingChanges = false;
 
@@ -37,9 +37,9 @@ namespace LocalPlaylistMaster
 
                 while (edits.MoveNext() & actuals.MoveNext())
                 {
-                    object val = type.GetProperty(actuals.Current)?.GetValue(obj) ?? throw new Exception("HUH");
+                    object? val = type.GetProperty(actuals.Current)?.GetValue(obj);
                     if (diffs.Exists(d => d.a == actuals.Current)) continue; // already in diffs
-                    (string e, string a, object val)? toRemove = null;
+                    (string e, string a, object? val)? toRemove = null;
 
                     bool alreadyThere = false;
 
@@ -47,7 +47,7 @@ namespace LocalPlaylistMaster
                     {
                         if (c.a == actuals.Current)
                         {
-                            if (c.val.Equals(val))
+                            if (c.val?.Equals(val) ?? val == null)
                             {
                                 alreadyThere = true;
                                 break;
@@ -91,7 +91,7 @@ namespace LocalPlaylistMaster
             }
         }
 
-        public void SetValue(string editProperty, object value)
+        public void SetValue(string editProperty, object? value)
         {
             pendingChanges = true;
 

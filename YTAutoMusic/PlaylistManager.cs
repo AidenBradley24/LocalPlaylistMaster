@@ -24,6 +24,9 @@ namespace LocalPlaylistMaster.Backend
         private readonly DependencyProcessManager dependencyProcessManager;
         private readonly FileInfo hostFile;
 
+        private int trackCount = -1;
+        private int remoteCount = -1;
+
         public PlaylistManager(string folderPath, DependencyProcessManager dependencies)
         {
             dependencyProcessManager = dependencies;
@@ -137,7 +140,7 @@ namespace LocalPlaylistMaster.Backend
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<RemoteManager> GetRemote(int id)
+        public async Task<RemoteManager> GetRemoteManager(int id)
         {
             using SQLiteCommand command = db.CreateCommand();
             command.CommandText = $"SELECT * FROM Remotes WHERE Id = @Id";
@@ -169,25 +172,59 @@ namespace LocalPlaylistMaster.Backend
             }
         }
 
-        public async Task<IEnumerable<Track>> GetTracks(int limit = 10)
+        public async Task<IEnumerable<Track>> GetTracks(int limit, int offset)
         {
             using SQLiteCommand command = db.CreateCommand();
-            command.CommandText = $"SELECT * FROM Tracks LIMIT @Limit";
+            command.CommandText = $"SELECT * FROM Tracks LIMIT @Limit OFFSET @Offset";
             command.Parameters.AddWithValue("@Limit", limit);
+            command.Parameters.AddWithValue("@Offset", offset);
 
             using var reader = await command.ExecuteReaderAsync();
             List<Track> tracks = new();
 
             while (await reader.ReadAsync())
             {
-                Track track = new(reader.GetInt32("Id"), reader.GetString("Name"),
-                reader.GetInt32("Remote"), reader.GetString("RemoteId"), reader.GetString("Artists"),
-                reader.GetString("Album"), reader.GetString("Description"), reader.GetInt32("Rating"),
-                reader.GetInt32("TimeInSeconds"), (TrackSettings)reader.GetInt32("Settings"));
+                Track track = new(
+                    reader.GetInt32("Id"),
+                    reader.GetString("Name"),
+                    reader.GetInt32("Remote"),
+                    reader.GetString("RemoteId"),
+                    reader.GetString("Artists"),
+                    reader.GetString("Album"),
+                    reader.GetString("Description"),
+                    reader.GetInt32("Rating"),
+                    reader.GetInt32("TimeInSeconds"),
+                    (TrackSettings)reader.GetInt32("Settings"));
                 tracks.Add(track);
             }
 
             return tracks;
+        }
+
+        public async Task<IEnumerable<Remote>> GetRemotes(int limit, int offset)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = $"SELECT * FROM Remotes LIMIT @Limit OFFSET @Offset";
+            command.Parameters.AddWithValue("@Limit", limit);
+            command.Parameters.AddWithValue("@Offset", offset);
+
+            using var reader = await command.ExecuteReaderAsync();
+            List<Remote> remotes = new();
+
+            while (await reader.ReadAsync())
+            {
+                Remote track = new(
+                    reader.GetInt32("Id"),
+                    reader.GetString("Name"),
+                    reader.GetString("Description"),
+                    reader.GetString("Link"),
+                    reader.GetInt32("TrackCount"),
+                    (RemoteType)reader.GetInt32("Type"),
+                    (RemoteSettings)reader.GetInt32("Settings"));
+                remotes.Add(track);
+            }
+
+            return remotes;
         }
 
         /// <summary>
@@ -202,7 +239,7 @@ namespace LocalPlaylistMaster.Backend
             {
                 reporter.Report((ReportType.TitleText, "Fetching Remote"));
                 reporter.Report((ReportType.DetailText, "pulling from database"));
-                RemoteManager manager = await GetRemote(remote);
+                RemoteManager manager = await GetRemoteManager(remote);
                 reporter.Report((ReportType.DetailText, "fetching remote"));
                 (Remote fetchedRemote, IEnumerable<Track> fetchedTracks) = await manager.FetchRemote(reporter);
                 reporter.Report((ReportType.DetailText, "updating database"));
@@ -220,6 +257,8 @@ namespace LocalPlaylistMaster.Backend
             }
 
             await transaction.CommitAsync();
+            InvalidateTrackCount();
+            InvalidateRemoteCount();
         }
 
         public async Task<int> IngestRemote(Remote remote)
@@ -387,6 +426,52 @@ namespace LocalPlaylistMaster.Backend
             }
 
             return (existingTracks, newTracks);
+        }
+
+        public int GetTrackCount()
+        {
+            if(trackCount >= 0) return trackCount;
+
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM Tracks";
+            trackCount = Convert.ToInt32(command.ExecuteScalar());
+            return trackCount;
+        }
+
+        public int GetRemoteCount()
+        {
+            if (remoteCount >= 0) return remoteCount;
+
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM Remotes";
+            remoteCount = Convert.ToInt32(command.ExecuteScalar());
+            return remoteCount;
+        }
+
+        private void InvalidateTrackCount()
+        {
+            trackCount = -1;
+        }
+
+        private void InvalidateRemoteCount()
+        {
+            remoteCount = -1;
+        }
+
+        public async Task<Dictionary<int, string>> GetRemoteNames(IEnumerable<int> remoteIDs)
+        {
+            Dictionary<int, string> remoteMap = new();
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT Id, Name FROM Remotes WHERE Id IN (" + string.Join(",", remoteIDs) + ")";
+            using var reader = await command.ExecuteReaderAsync();              
+            while (await reader.ReadAsync())
+            {
+                int id = reader.GetInt32(0);
+                string name = reader.GetString(1);
+                remoteMap.Add(id, name);
+            }
+                
+            return remoteMap;
         }
     }
 }

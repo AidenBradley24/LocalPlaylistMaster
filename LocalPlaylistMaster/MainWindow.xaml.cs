@@ -22,7 +22,8 @@ namespace LocalPlaylistMaster
             set => Model.manager = value;
         }
 
-        internal MainWindowModel Model { get => DataContext as MainWindowModel ?? throw new Exception(); }
+        internal MainWindowModel Model => DataContext as MainWindowModel ?? throw new Exception();
+        public TabItem CurrentTab => tabControl.SelectedItem as TabItem ?? throw new Exception();
 
         public MainWindow()
         {
