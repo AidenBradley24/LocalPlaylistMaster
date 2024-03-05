@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using System.Xml.Serialization;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Data;
 using static LocalPlaylistMaster.Backend.ProgressModel;
+using System.Reflection;
 
 namespace LocalPlaylistMaster.Backend
 {

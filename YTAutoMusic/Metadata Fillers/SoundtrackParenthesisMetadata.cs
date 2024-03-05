@@ -8,17 +8,19 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
 
         public override string ConfigName => "Soundtrack parenthesis";
 
-        public override bool Fill(TagLib.File tagFile, string title, string description)
+        public override bool Fill(Track track, out Track modified)
         {
-            if (IsStandaloneWord("OST", title, out string usedWord) || IsStandaloneWord("O.S.T.", title, out usedWord) || IsStandaloneWord("Soundtrack", title, out usedWord))
+            modified = new Track(track);
+
+            if (IsStandaloneWord("OST", track.Name, out string usedWord) || IsStandaloneWord("O.S.T.", track.Name, out usedWord) || IsStandaloneWord("Soundtrack", track.Name, out usedWord))
             {
-                int index = title.IndexOf(usedWord, StringComparison.InvariantCultureIgnoreCase);
-                if (index < 0 || index + usedWord.Length >= title.Length || title[index + usedWord.Length] != ')')
+                int index = track.Name.IndexOf(usedWord, StringComparison.InvariantCultureIgnoreCase);
+                if (index < 0 || index + usedWord.Length >= track.Name.Length || track.Name[index + usedWord.Length] != ')')
                 {
                     return false;
                 }
 
-                string album = CutLeftToChar(title[..index], '(', out int left);
+                string album = CutLeftToChar(track.Name[..index], '(', out int left);
                 if (usedWord == "O.S.T.")
                 {
                     album = album.Replace("O.S.T.", "OST");
@@ -39,12 +41,10 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                     a += word + " ";
                 }
 
-                tagFile.Tag.Album = a + "Soundtrack";
-
-                string t = title[..left].Trim(CLEAN_UP_TRIM);
-                tagFile.Tag.Title = t;
-
-                tagFile.Tag.Genres = new string[] { "Soundtrack" };
+                album = a + "Soundtrack";
+                string title = track.Name[..left].Trim(CLEAN_UP_TRIM);
+                modified.Album = album;
+                modified.Name = title;
 
                 return true;
             }

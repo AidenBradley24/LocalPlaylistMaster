@@ -5,20 +5,20 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
     public class FromKeywordMetadata : MetadataBase
     {
         public override string Name => "'from keyword' config";
-
         public override string ConfigName => "From keyword";
 
-        public override bool Fill(TagLib.File tagFile, string title, string description)
+        public override bool Fill(Track track, out Track modified)
         {
-            if (IsStandaloneWord("From", title, out string usedWord))
+            modified = new(track);
+
+            if (IsStandaloneWord("From", track.Name, out string usedWord))
             {
-                if (!title.Contains($"({usedWord}", StringComparison.InvariantCultureIgnoreCase))
+                if (!track.Name.Contains($"({usedWord}", StringComparison.InvariantCultureIgnoreCase))
                 {
                     throw new FormatException("Not real 'from keyword' config");
                 }
 
-                string[] bits = title.Split("(", StringSplitOptions.TrimEntries);
-
+                string[] bits = track.Name.Split("(", StringSplitOptions.TrimEntries);
                 string t = bits[0].Trim();
                 string a = bits[1][usedWord.Length..^1];
 
@@ -28,10 +28,8 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                 }
 
                 a = a.Trim();
-
-                tagFile.Tag.Title = t;
-                tagFile.Tag.Album = a;
-
+                modified.Name = t;
+                modified.Album = a;
                 return true;
             }
 

@@ -5,14 +5,15 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
     public class MusicKeywordMetadata : MetadataBase
     {
         public override string Name => "'music keyword' config";
-
         public override string ConfigName => "Music keyword";
 
-        public override bool Fill(TagLib.File tagFile, string title, string description)
+        public override bool Fill(Track track, out Track modified)
         {
-            if (IsWord("Music ", description, out string usedWord) || IsWord("Title ", description, out usedWord))
+            modified = new Track(track);
+
+            if (IsWord("Music ", track.Description, out string usedWord) || IsWord("Title ", track.Description, out usedWord))
             {
-                var lines = LineifyDescription(description).AsEnumerable();
+                var lines = LineifyDescription(track.Description).AsEnumerable();
 
                 var possibleLines = lines.Where(l => l.StartsWith(usedWord, StringComparison.InvariantCultureIgnoreCase));
                 if (!possibleLines.Any())
@@ -28,22 +29,13 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                 t = t.Trim(CLEAN_UP_TRIM);
                 a = a.Trim(CLEAN_UP_TRIM);
 
-                if (!title.Contains(t))
+                if (!track.Name.Contains(t))
                 {
                     throw new FormatException("Not real 'music keyword'");
                 }
 
-                if (string.IsNullOrWhiteSpace(a))
-                {
-                    tagFile.Tag.Title = t;
-                    tagFile.Tag.Album = "";
-                }
-                else
-                {
-                    tagFile.Tag.Title = t;
-                    tagFile.Tag.Album = a;
-                }
-
+                modified.Name = t;
+                modified.Album = string.IsNullOrWhiteSpace(a) ? "" : a;
                 return true;
             }
 

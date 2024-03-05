@@ -5,6 +5,7 @@ namespace LocalPlaylistMaster.Backend
 {
     internal class ConversionHandeler
     {
+        /*
         private readonly int MAX_PROCESS_COUNT;
 
         private readonly List<MusicBundle> bundles;
@@ -104,5 +105,6 @@ namespace LocalPlaylistMaster.Backend
         {
             return bundles.ToArray();
         }
+        */
     }
 }

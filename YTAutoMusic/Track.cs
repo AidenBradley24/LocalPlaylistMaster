@@ -67,6 +67,20 @@ namespace LocalPlaylistMaster.Backend
             TimeInSeconds = UNINITIALIZED;
         }
 
+        public Track(Track old)
+        {
+            Id = old.Id;
+            Name = old.Name;
+            Remote = old.Remote;
+            RemoteId = old.RemoteId;
+            Artists = old.Artists;
+            Album = old.Album;
+            Description = old.Description;
+            Rating = old.Rating;
+            TimeInSeconds = old.TimeInSeconds;
+            Settings = old.Settings;
+        }
+
         public string LengthString { get => TimeInSeconds == UNINITIALIZED ? "?" : TimeSpan.FromSeconds(TimeInSeconds).ToString(@"hh\:mm\:ss"); }
 
         public string TruncatedDescription 

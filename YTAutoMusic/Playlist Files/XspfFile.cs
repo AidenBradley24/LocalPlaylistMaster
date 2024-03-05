@@ -64,7 +64,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
 
             playlist.Add(
                 new XElement(ns + "title", bundle.Name),
-                new XElement(ns + "info", $"https://www.youtube.com/playlist?list={bundle.ID}"),
+                new XElement(ns + "info", $"https://www.youtube.com/playlist?list={bundle.Id}"),
                 tracklist
             );
 
@@ -95,7 +95,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
                 if (p != null)
                 {
                     string id = Encoding.Unicode.GetString(p.PrivateData.Data);
-                    info = $"https://www.youtube.com/watch?v={id}&list={bundle.ID}";
+                    info = $"https://www.youtube.com/watch?v={id}&list={bundle.Id}";
                 }
                 else
                 {

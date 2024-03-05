@@ -2,15 +2,17 @@
 {
     public class PlaylistBundle
     {
-        public string Name { get; private set; }
-        public string ID { get; private set; }
-        public string Description { get; private set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public List<int> Tracks { get; set; }
 
-        public PlaylistBundle(string name, string description, string id)
+        public PlaylistBundle(int id, string name, string description)
         {
+            Id = id;
             Name = name;
-            ID = id;
             Description = description;
+            Tracks = new List<int>();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using LocalPlaylistMaster.Backend.Metadata_Fillers;
+using System.Diagnostics;
 using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
@@ -80,6 +81,8 @@ namespace LocalPlaylistMaster.Backend
             }
 
             downloadDir.Delete(true);
+            tracks = MetadataFiller.ApplyMetadataFillerSuite(typeof(YTSuite), tracks);
+
             return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter,
                 ExistingRemote.Type, ExistingRemote.Settings), tracks);
         }

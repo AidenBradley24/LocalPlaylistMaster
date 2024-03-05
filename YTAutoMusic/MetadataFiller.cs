@@ -1,63 +1,51 @@
 ﻿using System.Reflection;
 using System.Configuration;
 using System.Globalization;
+using System.Formats.Tar;
+using System.Diagnostics;
 
 namespace LocalPlaylistMaster.Backend
 {
-    /// <summary>
-    /// Responsible for all metadata filling. Attempts all filling schemes with inherited <see cref="MetadataBase"/>
-    /// </summary>
     internal class MetadataFiller
     {
-        private readonly IEnumerable<MetadataBase> fillers;
+        private readonly FillerSuite suite;
 
-        public MetadataFiller()
+        public MetadataFiller(FillerSuite suite)
         {
-            fillers = GetFillers();
+            this.suite = suite;
         }
 
-        public void Fill(MusicBundle bundle, TagLib.File tagFile)
+        public List<Track> FillAll(IEnumerable<Track> tracks)
         {
-            bool success = false;
-            foreach(MetadataBase filler in fillers)
+            List<Track> result = new();
+            foreach (var track in tracks)
             {
-                try
+                foreach (MetadataBase filler in suite)
                 {
-                    if(filler.Fill(tagFile, bundle.Title, bundle.Description))
+                    try
                     {
-                        Console.WriteLine($"Filled metadata with {filler.Name}");
-                        success = true;
-                        break;
+                        if (filler.Fill(track, out Track modified))
+                        {
+                            Trace.WriteLine($"Filled metadata with {filler.Name}");
+                            result.Add(modified);
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"{filler.Name} failed.\n{ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"{filler.Name} failed.\n{ex.Message}");
-                }
             }
 
-            if(!success)
-            {
-                tagFile.Tag.Title = bundle.Title;
-                tagFile.Tag.Album = "";
-                Console.WriteLine($"Unable to fill metadata for '{bundle.Title}'");
-            }
+            return result;
         }
 
-        private static IEnumerable<MetadataBase> GetFillers()
+        public static List<Track> ApplyMetadataFillerSuite(Type suiteType, IEnumerable<Track> tracks)
         {
-            List<MetadataBase> fillers = new();
-            IEnumerable<Type> metadataFillerTypes = Assembly.GetAssembly(typeof(MetadataBase)).GetTypes().
-                Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(MetadataBase)));
-
-            foreach (Type type in metadataFillerTypes)
-            {
-                fillers.Add((MetadataBase)Activator.CreateInstance(type));
-            }
-
-            fillers.RemoveAll(f => string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings.Get($"'{f.ConfigName}' filler")));
-            return fillers.OrderBy(f =>
-            int.Parse(ConfigurationManager.AppSettings.Get($"'{f.ConfigName}' filler"), NumberStyles.Integer, CultureInfo.InvariantCulture));
+            FillerSuite suite = Activator.CreateInstance(suiteType) as FillerSuite ?? throw new Exception();
+            MetadataFiller filler = new(suite);
+            return filler.FillAll(tracks);
         }
     }
 }

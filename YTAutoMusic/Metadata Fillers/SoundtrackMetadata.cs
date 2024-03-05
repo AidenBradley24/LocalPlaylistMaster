@@ -5,17 +5,15 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
     public class SoundtrackMetadata : MetadataBase
     {
         public override string Name => "'soundtrack' config";
-
         public override string ConfigName => "Soundtrack";
 
-        private TagLib.File tagFile;
-
-        public override bool Fill(TagLib.File tagFile, string title, string description)
+        public override bool Fill(Track track, out Track modified)
         {
-            if (IsStandaloneWord("OST", title, out string usedWord) || IsStandaloneWord("O.S.T", title, out usedWord) || IsStandaloneWord("Soundtrack", title, out usedWord))
+            modified = new Track(track);
+
+            if (IsStandaloneWord("OST", track.Name, out string usedWord) || IsStandaloneWord("O.S.T", track.Name, out usedWord) || IsStandaloneWord("Soundtrack", track.Name, out usedWord))
             {
-                this.tagFile = tagFile;
-                var bits = title.Split(SEPERATORS, StringSplitOptions.RemoveEmptyEntries);
+                var bits = track.Name.Split(SEPERATORS, StringSplitOptions.RemoveEmptyEntries);
 
                 int i;
                 for (i = 0; i < bits.Length; i++)
@@ -70,17 +68,17 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                         a += word + " ";
                     }
 
-                    tagFile.Tag.Album = a + "Soundtrack";
+                    modified.Album = a + "Soundtrack";
 
                     i++;
 
-                    string t = null;
+                    string? t = null;
 
                     for (; i < bits.Length; i++)
                     {
                         if (i == blacklist) continue;
 
-                        string bit = ProcessTitle(bits[i]);
+                        string bit = ProcessTitle(bits[i], modified.Album);
 
                         if (string.IsNullOrWhiteSpace(bit) || IsNumberBody(bit))
                         {
@@ -99,7 +97,7 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                         {
                             if (i == blacklist) continue;
 
-                            string bit = ProcessTitle(bits[i]);
+                            string bit = ProcessTitle(bits[i], modified.Album);
 
                             if (string.IsNullOrWhiteSpace(bit) || IsNumberBody(bit))
                             {
@@ -117,11 +115,8 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
                     }
 
                     t = t.Trim(CLEAN_UP_TRIM);
-
-                    tagFile.Tag.Title = t;
+                    modified.Name = t;
                 }
-
-                tagFile.Tag.Genres = new string[] { "Soundtrack" };
 
                 return true;
             }
@@ -129,7 +124,7 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
             return false;
         }
 
-        private string ProcessTitle(string bit)
+        private static string ProcessTitle(string bit, string album)
         {
             bit = bit.Trim();
             var words = bit.Split(' ', '\t', '\r');
@@ -141,7 +136,7 @@ namespace LocalPlaylistMaster.Backend.Metadata_Fillers
 
                 if (words.Length > 1 && IsNumberBody(words[1]))
                 {
-                    return $"{bit} - {tagFile.Tag.Album}";
+                    return $"{bit} - {album}";
                 }
             }
 
