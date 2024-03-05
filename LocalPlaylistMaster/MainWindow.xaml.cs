@@ -2,7 +2,6 @@
 using Microsoft.Win32;
 using System.Collections;
 using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -62,13 +61,12 @@ namespace LocalPlaylistMaster
             };
 
             window.ShowDialog();
-            Model.RefreshTracks();
+            Model.RefreshAll();
         }
         
         public void InitializePlaylist(PlaylistManager playlist)
         {
             PlaylistManager = playlist;
-            Trace.WriteLine("YIPPEE");
         }
 
         private void OpenExistingPlaylist(object sender, RoutedEventArgs e)
@@ -93,20 +91,29 @@ namespace LocalPlaylistMaster
                 try
                 {
                     PlaylistManager = new PlaylistManager(dir.FullName, dependencyProcessManager);
-                    Model.RefreshTracks();
+                    Model.RefreshAll();
                 }
                 catch (Exception ex)
                 {
                     PlaylistManager = null;
-                    Model.RefreshTracks();
+                    Model.RefreshAll();
                     MessageBox.Show(ex.Message, "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
+        private bool tabChanging = false;
+
         private void TrackGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            tabChanging = false;
             Model.DisplaySelection(trackGrid.SelectedItems.Cast<Track>());
+        }
+
+        private void RemoteGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            tabChanging = false;
+            Model.DisplaySelection(remoteGrid.SelectedItems.Cast<Remote>());
         }
 
         private void CancelItemUpdate(object sender, RoutedEventArgs e)
@@ -126,6 +133,19 @@ namespace LocalPlaylistMaster
                 checkBox.IsChecked = false;
                 e.Handled = true;
             }
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (tabChanging)
+            {
+                Model.ClearSelection();            
+            }
+        }
+
+        private void TabControl_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            tabChanging = true;
         }
     }
 }

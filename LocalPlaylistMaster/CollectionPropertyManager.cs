@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace LocalPlaylistMaster
@@ -23,11 +22,6 @@ namespace LocalPlaylistMaster
 
         public CollectionPropertyManager(Type type, IEnumerable objs, IEnumerable<string> editProperties, IEnumerable<string> actualProperties)
         {
-            if(objs.Cast<LocalPlaylistMaster.Backend.Track>().Count() == 3)
-            {
-                Trace.WriteLine("WAFFLEs");
-            }
-
             this.type = type;
             collection = new List<object>(objs.Cast<object>());
             foreach (var obj in objs)

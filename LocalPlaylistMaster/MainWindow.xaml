@@ -3,12 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-        xmlns:ValueConverters="clr-namespace:LocalPlaylistMaster.ValueConverters"
+        xmlns:ValueConverters="clr-namespace:LocalPlaylistMaster.ValueConverters" xmlns:localplaylistmaster="clr-namespace:LocalPlaylistMaster" 
+        d:DataContext="{d:DesignInstance Type=localplaylistmaster:MainWindowModel}"
         mc:Ignorable="d"
         Title="Local Playlist Master" Height="450" Width="800">
     <Window.Resources>
         <ValueConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <ValueConverters:IntStringMapConverter x:Key="RemoteMap" ValueMap="{Binding RemoteReference}"/>
+        <ValueConverters:IntStringMapConverter x:Key="RemoteMap"/>
         <Style TargetType="DataGridCell">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -57,7 +58,7 @@
                 <!-- First panel -->
                 <Border Grid.Column="0" Background="LightBlue" Margin="5" Width="Auto">
                     <Grid>
-                        <TabControl x:Name="tabControl">
+                        <TabControl x:Name="tabControl" SelectionChanged="TabControl_SelectionChanged" PreviewMouseDown="TabControl_PreviewMouseDown">
                             <TabItem Name="tracksTab" Header="Tracks">
                                 <Grid>
                                     <DataGrid x:Name="trackGrid" ItemsSource="{Binding Tracks}" CanUserReorderColumns="False" 
@@ -66,7 +67,7 @@
                                               SelectionMode="Extended" SelectionUnit="FullRow">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
-                                            <DataGridTextColumn Header="Remote" Binding="{Binding RemoteId, Converter={StaticResource RemoteMap}}"/>
+                                            <DataGridTextColumn Header="Remote" Binding="{Binding Remote, Converter={StaticResource RemoteMap}}"/>
                                             <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
                                             <DataGridTextColumn Header="Album" Binding="{Binding Album}"/>
                                             <DataGridTextColumn Header="Artists" Binding="{Binding Artists}"/>
@@ -82,7 +83,18 @@
                             </TabItem>
                             <TabItem Name="remotesTab" Header="Remotes">
                                 <Grid>
-                                    <DataGrid ItemsSource="{Binding Remotes}" AutoGenerateColumns="True" />
+                                    <DataGrid x:Name ="remoteGrid" ItemsSource="{Binding Remotes}" CanUserReorderColumns="False" 
+                                              AutoGenerateColumns="False" IsReadOnly="True"
+                                              SelectionChanged="RemoteGrid_SelectionChanged"
+                                              SelectionMode="Extended" SelectionUnit="FullRow">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                            <DataGridTextColumn Header="Link" Binding="{Binding Link}"/>
+                                            <DataGridTextColumn Header="Count" Binding="{Binding TrackCount}"/>
+                                            <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
                                         <Button Content="Previous" Margin="5" Command="{Binding PreviousPageCommand}"/>
                                         <Button Content="Next" Margin="5" Command="{Binding NextPageCommand}"/>
@@ -122,7 +134,7 @@
                                 <Label Content="Artists:" Width="100"/>
                                 <TextBox Text="{Binding EditArtists, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingAlbum, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Label Content="Album:" Width="100"/>
                                 <TextBox Text="{Binding EditAlbum, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
                             </StackPanel>

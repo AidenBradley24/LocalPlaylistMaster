@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
+using LocalPlaylistMaster.ValueConverters;
 
 namespace LocalPlaylistMaster
 {
@@ -11,8 +12,11 @@ namespace LocalPlaylistMaster
         public MainWindow Host { get; init; }
         public PlaylistManager? manager;
 
-        private Dictionary<int, string>? remoteReference;
-        public Dictionary<int, string>? RemoteReference => remoteReference;
+        public Dictionary<int, string> RemoteReference
+        {
+            get => ((IntStringMapConverter)Host.Resources["RemoteMap"]).ValueMap;
+            set => ((IntStringMapConverter) Host.Resources["RemoteMap"]).ValueMap = value;
+        }
 
         private ObservableCollection<Track> tracks;
         public ObservableCollection<Track> Tracks
@@ -78,12 +82,19 @@ namespace LocalPlaylistMaster
             {
                 editingTrack = value;
                 OnPropertyChanged(nameof(EditingTrack));
+                OnPropertyChanged(nameof(EditingRemote));
             }
         }
 
         public bool EditingRemote
         {
             get => !EditingTrack;
+            set
+            {
+                editingTrack = !value;
+                OnPropertyChanged(nameof(EditingRemote));
+                OnPropertyChanged(nameof(EditingTrack));
+            }
         }
 
         public string EditName
@@ -108,7 +119,7 @@ namespace LocalPlaylistMaster
 
         public string EditLink
         {
-            get => (string?)propertyManager?.GetValue(nameof(EditDescription)) ?? "...";
+            get => (string?)propertyManager?.GetValue(nameof(EditLink)) ?? "...";
             set
             {
                 propertyManager?.SetValue(nameof(EditLink), value);
@@ -160,6 +171,12 @@ namespace LocalPlaylistMaster
             remotes = [];
         }
 
+        public void RefreshAll()
+        {
+            RefreshTracks();
+            RefreshRemotes();
+        }
+
         public void RefreshTracks()
         {
             if (manager == null)
@@ -174,7 +191,7 @@ namespace LocalPlaylistMaster
 
             var remoteReferenceTask = manager.GetRemoteNames(task.Result.Select(t => t.Remote));
             remoteReferenceTask.Wait();
-            remoteReference = remoteReferenceTask.Result;
+            RemoteReference = remoteReferenceTask.Result;
 
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
@@ -265,11 +282,13 @@ namespace LocalPlaylistMaster
                 if (result == MessageBoxResult.No)
                 {
                     ClearSelection();
+
+                    // reselect previous
                     IsItemSelected = true;
-                    foreach (var item in propertyManager.GetCollection<Track>())
-                    {
-                        Host.trackGrid.SelectedItems.Add(item);
-                    }
+                    //foreach (var item in propertyManager.GetCollection<Track>())
+                    //{
+                    //    Host.trackGrid.SelectedItems.Add(item);
+                    //}
 
                     Host.trackGrid.InvalidateVisual();
                     return;
@@ -295,7 +314,7 @@ namespace LocalPlaylistMaster
             }
             else if (EditingRemote)
             {
-                // TODO
+                Host.remoteGrid.UnselectAll();
             }
             IsItemSelected = false;
             ignoreSelection = false;
@@ -310,6 +329,7 @@ namespace LocalPlaylistMaster
             }
 
             IsItemSelected = true;
+            EditingTrack = true;
 
             string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLocked), nameof(EditArtists), nameof(EditAlbum)];
             string[] ACTUAL_NAMES = [nameof(Track.Name), nameof(Track.Description), nameof(Track.Locked), nameof(Track.Artists), nameof(Track.Album)];
@@ -330,8 +350,16 @@ namespace LocalPlaylistMaster
             }
 
             IsItemSelected = true;
+            EditingRemote = true;
 
-            // TODO
+            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLink), nameof(EditLocked)];
+            string[] ACTUAL_NAMES = [nameof(Remote.Name), nameof(Remote.Description), nameof(Remote.Link), nameof(Remote.Locked)];
+
+            propertyManager = new(typeof(Remote), remoteSelection, EDIT_NAMES, ACTUAL_NAMES);
+            foreach (string edit in EDIT_NAMES)
+            {
+                OnPropertyChanged(edit);
+            }
         }
 
         public void CancelItemUpdate()
@@ -353,6 +381,14 @@ namespace LocalPlaylistMaster
                 ClearSelection();
                 propertyManager?.ApplyChanges();
                 manager?.UpdateTracks(propertyManager?.GetCollection<Track>() ?? throw new Exception()).Wait();
+                propertyManager = null;
+                RefreshTracks();
+            }
+            else if(propertyManager?.MyType == typeof(Remote))
+            {
+                ClearSelection();
+                propertyManager?.ApplyChanges();
+                manager?.UpdateRemotes(propertyManager?.GetCollection<Remote>() ?? throw new Exception()).Wait();
                 propertyManager = null;
                 RefreshTracks();
             }

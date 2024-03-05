@@ -12,7 +12,10 @@ namespace LocalPlaylistMaster.ValueConverters
         public Dictionary<int, string> ValueMap
         {
             get { return (Dictionary<int, string>)GetValue(ValueMapProperty); }
-            set { SetValue(ValueMapProperty, value); }
+            set 
+            { 
+                SetValue(ValueMapProperty, value);
+            }
         }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

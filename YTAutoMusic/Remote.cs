@@ -1,9 +1,11 @@
-﻿namespace LocalPlaylistMaster.Backend
+﻿using System.Text.RegularExpressions;
+
+namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// A bundle of data related to a remote playlist.
     /// </summary>
-    public record Remote
+    public partial record Remote
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -12,6 +14,22 @@
         public int TrackCount { get; set; }
         public RemoteType Type { get; set; }
         public RemoteSettings Settings { get; set; }
+
+        public bool Locked
+        {
+            get => Settings.HasFlag(RemoteSettings.locked);
+            set
+            {
+                if (value)
+                {
+                    Settings |= RemoteSettings.locked;
+                }
+                else
+                {
+                    Settings &= ~RemoteSettings.locked;
+                }
+            }
+        }
 
         public const int UNINITIALIZED = -1;
 
@@ -35,6 +53,18 @@
             Type = RemoteType.UNINITIALIZED;
             Settings = RemoteSettings.none;
         }
+
+        public string TruncatedDescription
+        {
+            get
+            {
+                string truncated = Description.Length > 100 ? Description[..97] + "..." : Description;
+                return WhiteSpace().Replace(truncated, " ");
+            }
+        }
+
+        [GeneratedRegex("\\s+")]
+        private static partial Regex WhiteSpace();
     }
 
     public enum RemoteType 

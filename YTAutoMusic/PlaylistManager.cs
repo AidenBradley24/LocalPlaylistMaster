@@ -365,11 +365,11 @@ namespace LocalPlaylistMaster.Backend
         /// <returns>Number of updates</returns>
         public async Task<int> UpdateTracks(IEnumerable<Track> tracks)
         {
-            int updatedTrackCount = 0;
+            int updatedCount = 0;
 
             using (SQLiteCommand command = db.CreateCommand())
             {
-                StringBuilder sb = new("UPDATE TRACKS SET ");
+                StringBuilder sb = new("UPDATE Tracks SET ");
                 sb.Append("Name = @Name, ");
                 sb.Append("RemoteId = @RemoteId, ");
                 sb.Append("Artists = @Artists, ");
@@ -394,11 +394,48 @@ namespace LocalPlaylistMaster.Backend
                     command.Parameters.AddWithValue("@Settings", (int)track.Settings);
                     command.Parameters.AddWithValue("@Id", track.Id);
 
-                    updatedTrackCount += await command.ExecuteNonQueryAsync();
+                    updatedCount += await command.ExecuteNonQueryAsync();
                 }
             }
 
-            return updatedTrackCount;
+            return updatedCount;
+        }
+
+        /// <summary>
+        /// Update existing remotes with new information. Ignores the lock setting.
+        /// </summary>
+        /// <param name="remotes">Collection of remotes</param>
+        /// <returns>Number of updates</returns>
+        public async Task<int> UpdateRemotes(IEnumerable<Remote> remotes)
+        {
+            int updatedCount = 0;
+
+            using (SQLiteCommand command = db.CreateCommand())
+            {
+                StringBuilder sb = new("UPDATE Remotes SET ");
+                sb.Append("Name = @Name, ");
+                sb.Append("Description = @Description, ");
+                sb.Append("Link = @Link, ");
+                sb.Append("TrackCount = @TrackCount, ");
+                sb.Append("Settings = @Settings ");
+                sb.Append("WHERE Id = @Id");
+                command.CommandText = sb.ToString();
+
+                foreach (Remote remote in remotes)
+                {
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@Name", remote.Name);
+                    command.Parameters.AddWithValue("@Description", remote.Description);
+                    command.Parameters.AddWithValue("@Link", remote.Link);
+                    command.Parameters.AddWithValue("@TrackCount", remote.TrackCount);
+                    command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
+                    command.Parameters.AddWithValue("@Id", remote.Id);
+
+                    updatedCount += await command.ExecuteNonQueryAsync();
+                }
+            }
+
+            return updatedCount;
         }
 
         private async Task<(IEnumerable<Track> existingTracks, IEnumerable<Track> newTracks)> FilterExistingTracks(IEnumerable<Track> allTracks)
