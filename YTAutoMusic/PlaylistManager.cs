@@ -4,7 +4,6 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.Data;
 using static LocalPlaylistMaster.Backend.ProgressModel;
-using System.Reflection;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -19,6 +18,7 @@ namespace LocalPlaylistMaster.Backend
         private readonly SQLiteConnection db;
         private readonly DependencyProcessManager dependencyProcessManager;
         private readonly FileInfo hostFile;
+        private readonly DirectoryInfo audioDir;
 
         private int trackCount = -1;
         private int remoteCount = -1;
@@ -26,12 +26,13 @@ namespace LocalPlaylistMaster.Backend
         public PlaylistManager(string folderPath, DependencyProcessManager dependencies)
         {
             dependencyProcessManager = dependencies;
-            Directory.CreateDirectory(folderPath);
+            DirectoryInfo dir = Directory.CreateDirectory(folderPath);
+            audioDir = Directory.CreateDirectory(Path.Combine(dir.FullName, "audio"));
 
-            string dbPath = Path.Join(folderPath, "playlist.db");
+            string dbPath = Path.Join(dir.FullName, "playlist.db");
             db = new SQLiteConnection($"Data Source={dbPath}");
 
-            hostFile = new(Path.Join(folderPath, "host"));
+            hostFile = new(Path.Join(dir.FullName, "host"));
             if (File.Exists(hostFile.FullName))
             {
                 if (!File.Exists(dbPath))
@@ -86,7 +87,7 @@ namespace LocalPlaylistMaster.Backend
 
         public enum Status { ready, error, searching }
 
-        private async Task IngestTracks(IEnumerable<Track> tracks) // TODO use a transaction
+        private async Task IngestTracks(IEnumerable<Track> tracks)
         {
             using SQLiteCommand command = db.CreateCommand();
             StringBuilder sb = new("INSERT INTO Tracks (Name, Remote, RemoteId, Artists," +
@@ -147,10 +148,12 @@ namespace LocalPlaylistMaster.Backend
             if(await reader.ReadAsync())
             {
                 string link = reader.GetString("Link");
+                string name = reader.GetString("Name");
                 RemoteType type = (RemoteType)reader.GetInt32("Type");
                 RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
                 Remote existingRemote = new()
                 {
+                    Name = name,
                     Id = id,
                     Link = link,
                     Type = type,
@@ -254,7 +257,146 @@ namespace LocalPlaylistMaster.Backend
 
             await transaction.CommitAsync();
             InvalidateTrackCount();
-            InvalidateRemoteCount();
+        }
+
+        /// <summary>
+        /// Download the audio files for the specified tracks and update necessary information
+        /// </summary>
+        /// <param name="toDownload">Tracks which to download</param>
+        /// <param name="reporter"></param>
+        /// <returns></returns>
+        public async Task DownloadTracks(IEnumerable<Track> toDownload, IProgress<(ReportType type, object report)> reporter)
+        {
+            var groupsByRemote = toDownload.GroupBy(x => x.Remote);
+            using SQLiteTransaction transaction = db.BeginTransaction();
+
+            try
+            {
+                foreach (var group in groupsByRemote)
+                {
+                    reporter.Report((ReportType.TitleText, $"Downloading Tracks In Remote (ID: {group.Key})"));
+                    var remoteIds = group.Select(x => x.RemoteId);
+                    RemoteManager manager = await GetRemoteManager(group.Key);
+                    (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, remoteIds);
+                    ConversionHandeler conversion = new(group, fileMap, audioDir, dependencyProcessManager, reporter);
+                    await conversion.Convert();
+                    downloadDir.Delete(true);
+                }
+
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
+                command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                foreach (var track in toDownload)
+                {
+                    track.Downloaded = true;
+                    command.Parameters["@Id"].Value = track.Id;
+                    command.Parameters["@Settings"].Value = (int)track.Settings;
+                    using var tagFile = TagLib.File.Create(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    command.Parameters["@Length"].Value = tagFile.Properties.Duration.Seconds;
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            await transaction.CommitAsync();
+        }
+
+        /// <summary>
+        /// Combination of fetch and download that quickly downloads only new tracks
+        /// </summary>
+        /// <returns></returns>
+        public async Task SyncRemote(int remote, IProgress<(ReportType type, object report)> reporter)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                RemoteManager manager = await GetRemoteManager(remote);
+                reporter.Report((ReportType.TitleText, $"Syncing Remote '{manager.ExistingRemote.Name}'"));
+                reporter.Report((ReportType.DetailText, "fetching remote"));
+                var downloadBlacklist = await GetExistingTrackRemoteIds(remote);
+
+                (Remote fetchedRemote, IEnumerable<Track> fetchedTracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) 
+                    = await manager.FetchAndDownload(reporter, downloadBlacklist);
+
+                reporter.Report((ReportType.DetailText, "updating database"));
+                await UpdateTracksRemote(fetchedTracks, remote);
+                await IngestTracks(fetchedTracks);
+                await UpdateRemote(fetchedRemote, manager.ExistingRemote);
+                await GrabIds(fetchedTracks);
+
+                ConversionHandeler conversion = new(fetchedTracks, fileMap, audioDir, dependencyProcessManager, reporter);
+                await conversion.Convert();
+                reporter.Report((ReportType.DetailText, "updating database"));
+
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
+                command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                command.Parameters.AddWithValue("@Remote", remote);
+                foreach (var track in fetchedTracks)
+                {
+                    track.Downloaded = true;
+                    command.Parameters["@Id"].Value = track.Id;
+                    command.Parameters["@Settings"].Value = (int)track.Settings;
+                    using var tagFile = TagLib.File.Create(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    command.Parameters["@Length"].Value = tagFile.Properties.Duration.Seconds;
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            await transaction.CommitAsync();
+            InvalidateTrackCount();
+        }
+
+        /// <summary>
+        /// Grab assigned ids from database and set them in tracks
+        /// </summary>
+        /// <param name="tracks"></param>
+        /// <returns></returns>
+        private async Task GrabIds(IEnumerable<Track> tracks)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT Id FROM Tracks WHERE RemoteId = @RemoteId AND Remote = @Remote";
+            command.Parameters.Add(new SQLiteParameter("@RemoteId", DbType.String));
+            command.Parameters.Add(new SQLiteParameter("@Remote", DbType.Int32));
+            foreach(var track in tracks)
+            {
+                command.Parameters["@RemoteId"].Value = track.RemoteId;
+                command.Parameters["@Remote"].Value = track.Remote;
+                track.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
+            }
+        }
+
+        /// <summary>
+        /// Get remote ids of tracks already in the database
+        /// </summary>
+        /// <param name="remote">Remote to check</param>
+        /// <returns></returns>
+        private async Task<IEnumerable<string>> GetExistingTrackRemoteIds(int remote)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT RemoteId FROM Tracks WHERE Remote = @Remote";
+            command.Parameters.AddWithValue("@Remote", remote);
+
+            using var reader = await command.ExecuteReaderAsync();
+            List<string> remoteIds = new();
+            while(await reader.ReadAsync())
+            {
+                remoteIds.Add(reader.GetString(0));
+            }
+            return remoteIds;
         }
 
         public async Task<int> IngestRemote(Remote remote)
@@ -275,6 +417,7 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
                 object? id = await command.ExecuteScalarAsync();
                 await transaction.CommitAsync();
+                InvalidateRemoteCount();
                 return Convert.ToInt32(id);
             }
             catch

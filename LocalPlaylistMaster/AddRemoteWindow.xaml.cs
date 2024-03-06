@@ -49,15 +49,15 @@ namespace LocalPlaylistMaster
                 ProgressModel progressModel = new();
                 ProgressDisplay progressDisplayWindow = new(progressModel);
                 var reporter = progressModel.GetProgressReporter();
-
-                Trace.WriteLine("START");
                 progressDisplayWindow.Show();
+                IsEnabled = false;
 
                 await Task.Run(async () =>
                 {
                     await playlistManager.FetchRemote(newRemoteId, reporter);
-                    Trace.WriteLine("END");
                 });
+
+                IsEnabled = true;
 
                 progressDisplayWindow.Close();
             }

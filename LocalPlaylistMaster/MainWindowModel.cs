@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
@@ -392,6 +393,134 @@ namespace LocalPlaylistMaster
                 propertyManager = null;
                 RefreshTracks();
             }
+        }
+
+        /// <summary>
+        /// Download tracks if not already downloaded
+        /// </summary>
+        public async void DownloadSelectedTracks()
+        {
+            if (manager == null) return;
+            if (propertyManager?.MyType != typeof(Track)) return;
+            if (propertyManager.PendingChanges)
+            {
+                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            IEnumerable<Track> tracks = propertyManager.GetCollection<Track>();
+            tracks = tracks.Where(x => !x.Downloaded);
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            Host.IsEnabled = false;
+            await Task.Run(async () =>
+            {
+                await manager.DownloadTracks(tracks, reporter);
+            });
+            Host.IsEnabled = true;
+            progressDisplayWindow.Close();
+            RefreshTracks();
+        }
+
+        public async void FetchAll()
+        {
+            if (manager == null) return;
+            if (propertyManager?.PendingChanges ?? false)
+            {
+                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            Host.IsEnabled = false;
+
+            await Task.Run(async () =>
+            {
+                int currentOffset = 0;
+                while (currentOffset < manager.GetRemoteCount())
+                {
+                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    foreach (var remote in remotes)
+                    {
+                        await manager.FetchRemote(remote.Id, reporter);
+                    }
+                    currentOffset += VIEW_SIZE;
+                }
+            });
+
+            Host.IsEnabled = true;
+            progressDisplayWindow.Close();
+            RefreshAll();
+        }
+
+        public async void DownloadAll()
+        {
+            if (manager == null) return;
+            if (propertyManager?.PendingChanges ?? false)
+            {
+                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            Host.IsEnabled = false;
+
+            await Task.Run(async () =>
+            {
+                int currentOffset = 0;
+                while (currentOffset < manager.GetTrackCount())
+                {
+                    var tracks = await manager.GetTracks(VIEW_SIZE, currentOffset);
+                    await manager.DownloadTracks(tracks, reporter);
+                    currentOffset += VIEW_SIZE;
+                }
+            });
+
+            Host.IsEnabled = true;
+            progressDisplayWindow.Close();
+            RefreshAll();
+        }
+
+        public async void SyncAll()
+        {
+            if (manager == null) return;
+            if (propertyManager?.PendingChanges ?? false)
+            {
+                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            Host.IsEnabled = false;
+
+            await Task.Run(async () =>
+            {
+                int currentOffset = 0;
+                while (currentOffset < manager.GetRemoteCount())
+                {
+                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    foreach (var remote in remotes)
+                    {
+                        await manager.SyncRemote(remote.Id, reporter);
+                    }
+                    currentOffset += VIEW_SIZE;
+                }
+            });
+
+            Host.IsEnabled = true;
+            progressDisplayWindow.Close();
+            RefreshAll();
         }
     }
 }

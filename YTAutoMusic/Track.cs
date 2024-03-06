@@ -31,6 +31,21 @@ namespace LocalPlaylistMaster.Backend
             }
         }
 
+        public bool Downloaded
+        {
+            get => Settings.HasFlag(TrackSettings.downloaded);
+            internal set
+            {
+                if (value)
+                {
+                    Settings |= TrackSettings.downloaded;
+                }
+                else
+                {
+                    Settings &= ~TrackSettings.downloaded;
+                }
+            }
+        }
 
         public string[] GetArtists()
         {
@@ -102,5 +117,6 @@ namespace LocalPlaylistMaster.Backend
         none = 0,
         removeMe = 1 << 0,
         locked = 1 << 1,
+        downloaded = 1 << 2,
     }
 }

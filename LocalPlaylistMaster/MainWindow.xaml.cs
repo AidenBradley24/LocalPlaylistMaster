@@ -147,5 +147,25 @@ namespace LocalPlaylistMaster
         {
             tabChanging = true;
         }
+
+        private void DownloadAudioButton(object sender, RoutedEventArgs e)
+        {
+            Model.DownloadSelectedTracks();
+        }
+
+        private void FetchAll(object sender, RoutedEventArgs e)
+        {
+            Model.FetchAll();
+        }
+
+        private void DownloadAll(object sender, RoutedEventArgs e)
+        {
+            Model.DownloadAll();
+        }
+
+        private void SyncAll(object sender, RoutedEventArgs e)
+        {
+            Model.SyncAll();
+        }
     }
 }
