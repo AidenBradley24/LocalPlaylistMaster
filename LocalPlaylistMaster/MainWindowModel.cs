@@ -11,7 +11,7 @@ namespace LocalPlaylistMaster
     public class MainWindowModel : INotifyPropertyChanged
     {
         public MainWindow Host { get; init; }
-        public PlaylistManager? manager;
+        public DatabaseManager? manager;
 
         public Dictionary<int, string> RemoteReference
         {

@@ -15,7 +15,7 @@ namespace LocalPlaylistMaster
     public partial class MainWindow : Window
     {
         private readonly DependencyProcessManager dependencyProcessManager;
-        public PlaylistManager? PlaylistManager 
+        public DatabaseManager? PlaylistManager 
         { 
             get => Model.manager; 
             set => Model.manager = value;
@@ -64,7 +64,7 @@ namespace LocalPlaylistMaster
             Model.RefreshAll();
         }
         
-        public void InitializePlaylist(PlaylistManager playlist)
+        public void InitializePlaylist(DatabaseManager playlist)
         {
             PlaylistManager = playlist;
         }
@@ -90,7 +90,7 @@ namespace LocalPlaylistMaster
 
                 try
                 {
-                    PlaylistManager = new PlaylistManager(dir.FullName, dependencyProcessManager);
+                    PlaylistManager = new DatabaseManager(dir.FullName, dependencyProcessManager);
                     Model.RefreshAll();
                 }
                 catch (Exception ex)

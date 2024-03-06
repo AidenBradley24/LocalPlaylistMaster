@@ -8,11 +8,11 @@ using static LocalPlaylistMaster.Backend.ProgressModel;
 namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
-    /// Manages all things playlist
+    /// Manages the database and features related
     /// </summary>
-    public sealed class PlaylistManager
+    public sealed class DatabaseManager
     {
-        public PlaylistRecord Playlist { get; private set; }
+        public DatabaseRecord DbRecord { get; private set; }
         public Status MyStatus { get; private set; }
 
         private readonly SQLiteConnection db;
@@ -23,7 +23,7 @@ namespace LocalPlaylistMaster.Backend
         private int trackCount = -1;
         private int remoteCount = -1;
 
-        public PlaylistManager(string folderPath, DependencyProcessManager dependencies)
+        public DatabaseManager(string folderPath, DependencyProcessManager dependencies)
         {
             dependencyProcessManager = dependencies;
             DirectoryInfo dir = Directory.CreateDirectory(folderPath);
@@ -42,16 +42,16 @@ namespace LocalPlaylistMaster.Backend
 
                 db.Open();
 
-                XmlSerializer serializer = new(typeof(PlaylistRecord));
+                XmlSerializer serializer = new(typeof(DatabaseRecord));
                 using FileStream stream = new(hostFile.FullName, FileMode.Open);
-                Playlist = serializer.Deserialize(stream) as PlaylistRecord ?? throw new Exception("Invalid host file");
+                DbRecord = serializer.Deserialize(stream) as DatabaseRecord ?? throw new Exception("Invalid host file");
             }
             else
             {
-                Playlist = new();
-                XmlSerializer serializer = new(typeof(PlaylistRecord));
+                DbRecord = new();
+                XmlSerializer serializer = new(typeof(DatabaseRecord));
                 using FileStream stream = new(hostFile.FullName, FileMode.Create);
-                serializer.Serialize(stream, Playlist);
+                serializer.Serialize(stream, DbRecord);
 
                 SQLiteConnection.CreateFile(dbPath);
                 db.Open();
@@ -74,12 +74,12 @@ namespace LocalPlaylistMaster.Backend
 
         public void UpdatePlaylistRecord()
         {
-            XmlSerializer serializer = new(typeof(PlaylistRecord));
+            XmlSerializer serializer = new(typeof(DatabaseRecord));
             using FileStream stream = new(hostFile.FullName, FileMode.Create);
-            serializer.Serialize(stream, Playlist);
+            serializer.Serialize(stream, DbRecord);
         }
 
-        ~PlaylistManager()
+        ~DatabaseManager()
         {
             UpdatePlaylistRecord();
             db?.Close();

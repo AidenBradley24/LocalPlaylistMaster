@@ -31,7 +31,7 @@ namespace BackendTest.Db_Tests
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory("TEST_CREATEDB_");
             output.WriteLine(tempDir.FullName);
             DependencyProcessManager dependency = new();
-            PlaylistManager playlistManager = new(tempDir.FullName, dependency);
+            DatabaseManager playlistManager = new(tempDir.FullName, dependency);
             Assert.True(playlistManager != null);
         }
 
@@ -41,7 +41,7 @@ namespace BackendTest.Db_Tests
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory("TEST_ADDREMOTE_");
             output.WriteLine(tempDir.FullName);
             DependencyProcessManager dependency = new();
-            PlaylistManager playlistManager = new(tempDir.FullName, dependency);
+            DatabaseManager playlistManager = new(tempDir.FullName, dependency);
             playlistManager.IngestRemote(new Remote(Remote.UNINITIALIZED, "", "", TEST_PLAYLIST, Remote.UNINITIALIZED, RemoteType.ytdlp, RemoteSettings.none)).Wait();
         }
 
@@ -51,7 +51,7 @@ namespace BackendTest.Db_Tests
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory("TEST_FetchRemote_");
             output.WriteLine(tempDir.FullName);
             DependencyProcessManager dependency = new();
-            PlaylistManager playlistManager = new(tempDir.FullName, dependency);
+            DatabaseManager playlistManager = new(tempDir.FullName, dependency);
             playlistManager.IngestRemote(new Remote(Remote.UNINITIALIZED, "", "", TEST_PLAYLIST, Remote.UNINITIALIZED, RemoteType.ytdlp, RemoteSettings.none)).Wait();
             playlistManager.FetchRemote(1).Wait(); // id starts at 1
         }
@@ -62,7 +62,7 @@ namespace BackendTest.Db_Tests
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory("TEST_ReadTracks_");
             output.WriteLine(tempDir.FullName);
             DependencyProcessManager dependency = new();
-            PlaylistManager playlistManager = new(tempDir.FullName, dependency);
+            DatabaseManager playlistManager = new(tempDir.FullName, dependency);
             playlistManager.IngestRemote(new Remote(Remote.UNINITIALIZED, "", "", TEST_PLAYLIST, Remote.UNINITIALIZED, RemoteType.ytdlp, RemoteSettings.none)).Wait();
             playlistManager.FetchRemote(1).Wait(); // id starts at 1
             var tracks = playlistManager.GetTracks();

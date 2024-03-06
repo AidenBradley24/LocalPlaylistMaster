@@ -13,9 +13,9 @@ namespace LocalPlaylistMaster
     public partial class AddRemoteWindow : Window
     {
         private readonly RemoteModel remoteModel;
-        private readonly PlaylistManager playlistManager;
+        private readonly DatabaseManager playlistManager;
 
-        public AddRemoteWindow(PlaylistManager manager)
+        public AddRemoteWindow(DatabaseManager manager)
         {
             InitializeComponent();
             remoteModel = new RemoteModel();
