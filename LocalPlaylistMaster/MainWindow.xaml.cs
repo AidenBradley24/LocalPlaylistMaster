@@ -17,8 +17,8 @@ namespace LocalPlaylistMaster
         private readonly DependencyProcessManager dependencyProcessManager;
         public DatabaseManager? PlaylistManager 
         { 
-            get => Model.manager; 
-            set => Model.manager = value;
+            get => Model.Manager; 
+            set => Model.Manager = value;
         }
 
         internal MainWindowModel Model => DataContext as MainWindowModel ?? throw new Exception();
@@ -28,7 +28,28 @@ namespace LocalPlaylistMaster
         {
             InitializeComponent();
             DataContext = new MainWindowModel(this);
-            dependencyProcessManager = new DependencyProcessManager();
+
+            try
+            {
+                dependencyProcessManager = new DependencyProcessManager();
+            }
+            catch (FileNotFoundException ex)
+            {
+                var result = MessageBox.Show(
+                    $"Some needed binaries were not found.\n`{ex.Message}`\nThe program will attempt to download the needed binaries.", "Missing dependencies",
+                    MessageBoxButton.OKCancel, MessageBoxImage.Exclamation);
+                
+                if(result == MessageBoxResult.OK)
+                {
+                    DependencyProcessManager.DownloadProcesses();
+                    MessageBox.Show("Download complete!\nRestart the app.");
+                    Environment.Exit(0);
+                }
+                else
+                {
+                    Environment.Exit(-1);
+                }          
+            }
         }
 
         private void CreateNewPlaylist(object sender, RoutedEventArgs e)
@@ -90,7 +111,7 @@ namespace LocalPlaylistMaster
 
                 try
                 {
-                    PlaylistManager = new DatabaseManager(dir.FullName, dependencyProcessManager);
+                    PlaylistManager = new DatabaseManager(dir.FullName, dependencyProcessManager, false);
                     Model.RefreshAll();
                 }
                 catch (Exception ex)
@@ -163,9 +184,9 @@ namespace LocalPlaylistMaster
             Model.DownloadAll();
         }
 
-        private void SyncAll(object sender, RoutedEventArgs e)
+        private void SyncNew(object sender, RoutedEventArgs e)
         {
-            Model.SyncAll();
+            Model.SyncNew();
         }
     }
 }

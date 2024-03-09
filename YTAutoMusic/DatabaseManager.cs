@@ -22,17 +22,23 @@ namespace LocalPlaylistMaster.Backend
 
         private int trackCount = -1;
         private int remoteCount = -1;
+        public const int NO_REMOTE = -1;
 
-        public DatabaseManager(string folderPath, DependencyProcessManager dependencies)
+        public DatabaseManager(string dirPath, DependencyProcessManager dependencies, bool newDb)
         {
             dependencyProcessManager = dependencies;
-            DirectoryInfo dir = Directory.CreateDirectory(folderPath);
-            audioDir = Directory.CreateDirectory(Path.Combine(dir.FullName, "audio"));
+            DirectoryInfo dir = Directory.CreateDirectory(dirPath);
 
             string dbPath = Path.Join(dir.FullName, "playlist.db");
-            db = new SQLiteConnection($"Data Source={dbPath}");
 
+            if (!newDb && !File.Exists(dbPath))
+            {
+                throw new FileNotFoundException($"'{dbPath}' does not exist");
+            }
+
+            db = new SQLiteConnection($"Data Source={dbPath}");
             hostFile = new(Path.Join(dir.FullName, "host"));
+
             if (File.Exists(hostFile.FullName))
             {
                 if (!File.Exists(dbPath))
@@ -69,11 +75,13 @@ namespace LocalPlaylistMaster.Backend
                 }
             }
 
+            audioDir = Directory.CreateDirectory(Path.Combine(dir.FullName, "audio"));
             MyStatus = Status.ready;
         }
 
         public void UpdatePlaylistRecord()
         {
+            if (hostFile == null || DbRecord == null) return;
             XmlSerializer serializer = new(typeof(DatabaseRecord));
             using FileStream stream = new(hostFile.FullName, FileMode.Create);
             serializer.Serialize(stream, DbRecord);
@@ -133,11 +141,12 @@ namespace LocalPlaylistMaster.Backend
 
         /// <summary>
         /// Creates a remote manager from an existing remote in the database.
+        /// If there is no matching remote, return null.
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<RemoteManager> GetRemoteManager(int id)
+        public async Task<RemoteManager?> GetRemoteManager(int id)
         {
             using SQLiteCommand command = db.CreateCommand();
             command.CommandText = $"SELECT * FROM Remotes WHERE Id = @Id";
@@ -159,15 +168,12 @@ namespace LocalPlaylistMaster.Backend
                     Type = type,
                     Settings = settings
                 };
-                return type switch
-                {
-                    RemoteType.ytdlp => new YTdlpManager(existingRemote, dependencyProcessManager),
-                    _ => throw new Exception("Invalid remote type")
-                };
+
+                return RemoteManager.Create(existingRemote, dependencyProcessManager);
             }
             else
             {
-                throw new Exception("Remote was not found in the database!");
+                return null;
             }
         }
 
@@ -238,11 +244,24 @@ namespace LocalPlaylistMaster.Backend
             {
                 reporter.Report((ReportType.TitleText, "Fetching Remote"));
                 reporter.Report((ReportType.DetailText, "pulling from database"));
-                RemoteManager manager = await GetRemoteManager(remote);
+                RemoteManager? manager = await GetRemoteManager(remote);
+
+                if(manager == null)
+                {
+                    transaction.Rollback();
+                    reporter.Report((ReportType.Message, new MessageBox() 
+                    { 
+                        Title = "ERROR!",
+                        Detail = $"Remote was not found in the database!\nId:{remote}",
+                        Type = MessageBox.MessageType.error,
+                    }));
+                    return;
+                }
+
                 reporter.Report((ReportType.DetailText, "fetching remote"));
                 (Remote fetchedRemote, IEnumerable<Track> fetchedTracks) = await manager.FetchRemote(reporter);
                 reporter.Report((ReportType.DetailText, "updating database"));
-                await UpdateTracksRemote(fetchedTracks, remote);
+                await OrphanTracks(fetchedTracks, remote);
                 (var existingTracks, var newTracks) = await FilterExistingTracks(fetchedTracks);
                 await IngestTracks(newTracks);
                 var unlockedTracks = await FilterUnlockedTracks(existingTracks);
@@ -276,12 +295,26 @@ namespace LocalPlaylistMaster.Backend
                 {
                     reporter.Report((ReportType.TitleText, $"Downloading Tracks In Remote (ID: {group.Key})"));
                     var remoteIds = group.Select(x => x.RemoteId);
-                    RemoteManager manager = await GetRemoteManager(group.Key);
+                    RemoteManager? manager = await GetRemoteManager(group.Key);
+
+                    if (manager == null)
+                    {
+                        reporter.Report((ReportType.Message, new MessageBox()
+                        {
+                            Title = "ERROR!",
+                            Detail = $"Remote was not found in the database!\nId:{group.Key}",
+                            Type = MessageBox.MessageType.warning,
+                        }));
+                        continue;
+                    }
+
                     (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, remoteIds);
                     ConversionHandeler conversion = new(group, fileMap, audioDir, dependencyProcessManager, reporter);
                     await conversion.Convert();
                     downloadDir.Delete(true);
                 }
+
+                List<Track> notDownloaded = new();
 
                 using SQLiteCommand command = db.CreateCommand();
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
@@ -290,12 +323,31 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
                 foreach (var track in toDownload)
                 {
+                    FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    if (!audioFile.Exists)
+                    {
+                        notDownloaded.Add(track);
+                        continue;
+                    }
+
+                    TrackProbe probe = new(audioFile, track, dependencyProcessManager);
+                    await probe.FindDuration();
+
                     track.Downloaded = true;
                     command.Parameters["@Id"].Value = track.Id;
                     command.Parameters["@Settings"].Value = (int)track.Settings;
-                    using var tagFile = TagLib.File.Create(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
-                    command.Parameters["@Length"].Value = tagFile.Properties.Duration.Seconds;
+                    command.Parameters["@Length"].Value = track.TimeInSeconds;
                     await command.ExecuteNonQueryAsync();
+                }
+
+                if (notDownloaded.Any())
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "Tracks not downloaded",
+                        Detail = "The following tracks were not downloaded:\n" + string.Join('\n', notDownloaded.Select(t => $"#{t.Id} -- {t.Name}")),
+                        Type = MessageBox.MessageType.warning,
+                    }));
                 }
             }
             catch
@@ -316,7 +368,19 @@ namespace LocalPlaylistMaster.Backend
             using SQLiteTransaction transaction = db.BeginTransaction();
             try
             {
-                RemoteManager manager = await GetRemoteManager(remote);
+                RemoteManager? manager = await GetRemoteManager(remote);
+
+                if (manager == null)
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "ERROR!",
+                        Detail = $"Remote was not found in the database!\nId:{remote}",
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                    return;
+                }
+
                 reporter.Report((ReportType.TitleText, $"Syncing Remote '{manager.ExistingRemote.Name}'"));
                 reporter.Report((ReportType.DetailText, "fetching remote"));
                 var downloadBlacklist = await GetExistingTrackRemoteIds(remote);
@@ -325,7 +389,6 @@ namespace LocalPlaylistMaster.Backend
                     = await manager.FetchAndDownload(reporter, downloadBlacklist);
 
                 reporter.Report((ReportType.DetailText, "updating database"));
-                await UpdateTracksRemote(fetchedTracks, remote);
                 await IngestTracks(fetchedTracks);
                 await UpdateRemote(fetchedRemote, manager.ExistingRemote);
                 await GrabIds(fetchedTracks);
@@ -333,6 +396,8 @@ namespace LocalPlaylistMaster.Backend
                 ConversionHandeler conversion = new(fetchedTracks, fileMap, audioDir, dependencyProcessManager, reporter);
                 await conversion.Convert();
                 reporter.Report((ReportType.DetailText, "updating database"));
+
+                List<Track> notDownloaded = new();
 
                 using SQLiteCommand command = db.CreateCommand();
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
@@ -342,12 +407,31 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.AddWithValue("@Remote", remote);
                 foreach (var track in fetchedTracks)
                 {
+                    FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    if (!audioFile.Exists)
+                    {
+                        notDownloaded.Add(track);
+                        continue;
+                    }
+
+                    TrackProbe probe = new(audioFile, track, dependencyProcessManager);
+                    await probe.FindDuration();
+
                     track.Downloaded = true;
                     command.Parameters["@Id"].Value = track.Id;
                     command.Parameters["@Settings"].Value = (int)track.Settings;
-                    using var tagFile = TagLib.File.Create(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
-                    command.Parameters["@Length"].Value = tagFile.Properties.Duration.Seconds;
+                    command.Parameters["@Length"].Value = track.TimeInSeconds;
                     await command.ExecuteNonQueryAsync();
+                }
+
+                if (notDownloaded.Any())
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "Tracks not downloaded",
+                        Detail = "The following tracks were not downloaded:\n" + string.Join('\n', notDownloaded.Select(t => $"#{t.Id} -- {t.Name}")),
+                        Type = MessageBox.MessageType.warning,
+                    }));
                 }
             }
             catch
@@ -454,7 +538,7 @@ namespace LocalPlaylistMaster.Backend
             await command.ExecuteNonQueryAsync();
         }
 
-        private async Task<int> UpdateTracksRemote(IEnumerable<Track> fetchedTracks, int remote)
+        private async Task<int> OrphanTracks(IEnumerable<Track> fetchedTracks, int remote)
         {
             int updatedTrackCount = 0;
 
@@ -462,17 +546,16 @@ namespace LocalPlaylistMaster.Backend
             using (SQLiteCommand command = db.CreateCommand())
             {
                 var idPlaceholders = string.Join(",", fetchedTracks.Select((_, index) => $"@Id{index}"));
-                var idParameters = fetchedTracks.Select((t, index) => new SQLiteParameter($"@Id{index}", t.Id)).ToArray();
-
-                command.CommandText = $"UPDATE Tracks SET Remote = @NewRemote WHERE Remote = @Remote AND Id NOT IN ({idPlaceholders})";
+                var idParameters = fetchedTracks.Select((t, index) => new SQLiteParameter($"@Id{index}", t.RemoteId)).ToArray();
+                command.CommandText = $"UPDATE Tracks SET Remote = @NewRemote WHERE Remote = @Remote AND RemoteId NOT IN ({idPlaceholders})";
                 command.Parameters.AddWithValue("@Remote", remote);
-                command.Parameters.AddWithValue("@NewRemote", -1); // TODO make const for no remote
+                command.Parameters.AddWithValue("@NewRemote", NO_REMOTE);
                 command.Parameters.AddRange(idParameters);
                 updatedTrackCount = await command.ExecuteNonQueryAsync();
             }
 
             Trace.WriteLine($"Orphaned {updatedTrackCount} remotes with remote #{remote}");
-            return updatedTrackCount + await UpdateTracks(fetchedTracks);
+            return updatedTrackCount;
         }
 
         /// <summary>
@@ -584,11 +667,11 @@ namespace LocalPlaylistMaster.Backend
 
             using (SQLiteCommand command = db.CreateCommand())
             {
-                command.CommandText = "SELECT Id FROM Tracks WHERE Id = @Id";
-                command.Parameters.Add("@Id", DbType.Int32);
+                command.CommandText = "SELECT RemoteId FROM Tracks WHERE RemoteId = @RemoteId";
+                command.Parameters.Add("@RemoteId", DbType.String);
                 foreach (Track track in allTracks)
                 {
-                    command.Parameters["@Id"].Value = track.Id;
+                    command.Parameters["@RemoteId"].Value = track.RemoteId;
                     object? result = await command.ExecuteScalarAsync();
                     if (result != null && result != DBNull.Value)
                     {

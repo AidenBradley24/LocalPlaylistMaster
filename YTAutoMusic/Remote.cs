@@ -67,11 +67,6 @@ namespace LocalPlaylistMaster.Backend
         private static partial Regex WhiteSpace();
     }
 
-    public enum RemoteType 
-    { 
-        UNINITIALIZED = -1, ytdlp
-    }
-
     [Flags]
     public enum RemoteSettings 
     { 

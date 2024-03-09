@@ -141,7 +141,7 @@ namespace LocalPlaylistMaster
 
             try
             {
-                DatabaseManager manager = new(FullPath, dependencyProcessManager);
+                DatabaseManager manager = new(FullPath, dependencyProcessManager, true);
                 manager.DbRecord.name = PlaylistName;
                 manager.UpdatePlaylistRecord();
                 ((MainWindow)Owner).InitializePlaylist(manager);

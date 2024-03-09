@@ -11,7 +11,16 @@ namespace LocalPlaylistMaster
     public class MainWindowModel : INotifyPropertyChanged
     {
         public MainWindow Host { get; init; }
-        public DatabaseManager? manager;
+        public DatabaseManager? Manager
+        {
+            get => manager;
+            set
+            {
+                manager = value;
+                OnPropertyChanged(nameof(DbName));
+            }
+        }
+        private DatabaseManager? manager;
 
         public Dictionary<int, string> RemoteReference
         {
@@ -65,6 +74,11 @@ namespace LocalPlaylistMaster
 
                 return "";
             }
+        }
+
+        public string DbName
+        {
+            get => Manager?.DbRecord.name ?? "";
         }
 
         private const int VIEW_SIZE = 50;
@@ -180,19 +194,20 @@ namespace LocalPlaylistMaster
 
         public void RefreshTracks()
         {
-            if (manager == null)
+            if (Manager == null)
             {
                 Tracks = [];
                 return;
             }
 
-            var task = manager.GetTracks(VIEW_SIZE, currentTrackOffset);
+            var task = Manager.GetTracks(VIEW_SIZE, currentTrackOffset);
             task.Wait(); // TODO add loading bar
             Tracks = new ObservableCollection<Track>(task.Result);
 
-            var remoteReferenceTask = manager.GetRemoteNames(task.Result.Select(t => t.Remote));
+            var remoteReferenceTask = Manager.GetRemoteNames(task.Result.Select(t => t.Remote));
             remoteReferenceTask.Wait();
             RemoteReference = remoteReferenceTask.Result;
+            RemoteReference.Add(-1, "NONE");
 
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
@@ -200,13 +215,13 @@ namespace LocalPlaylistMaster
 
         public void RefreshRemotes()
         {
-            if (manager == null)
+            if (Manager == null)
             {
                 Remotes = [];
                 return;
             }
 
-            var task = manager.GetRemotes(VIEW_SIZE, currentRemoteOffset);
+            var task = Manager.GetRemotes(VIEW_SIZE, currentRemoteOffset);
             task.Wait(); // TODO add loading bar
 
             Remotes = new ObservableCollection<Remote>(task.Result);
@@ -230,7 +245,7 @@ namespace LocalPlaylistMaster
 
         private bool CanNavigatePrevious()
         {
-            if (manager == null) return false;
+            if (Manager == null) return false;
 
             return Host.CurrentTab.Name switch
             {
@@ -256,12 +271,12 @@ namespace LocalPlaylistMaster
 
         private bool CanNavigateNext()
         {
-            if (manager == null) return false;
+            if (Manager == null) return false;
 
             return Host.CurrentTab.Name switch
             {
-                "tracksTab" => currentTrackOffset + VIEW_SIZE < manager.GetTrackCount(),
-                "remotesTab" => currentRemoteOffset + VIEW_SIZE < manager.GetRemoteCount(),
+                "tracksTab" => currentTrackOffset + VIEW_SIZE < Manager.GetTrackCount(),
+                "remotesTab" => currentRemoteOffset + VIEW_SIZE < Manager.GetRemoteCount(),
                 _ => true,
             };
         }
@@ -381,7 +396,7 @@ namespace LocalPlaylistMaster
             {
                 ClearSelection();
                 propertyManager?.ApplyChanges();
-                manager?.UpdateTracks(propertyManager?.GetCollection<Track>() ?? throw new Exception()).Wait();
+                Manager?.UpdateTracks(propertyManager?.GetCollection<Track>() ?? throw new Exception()).Wait();
                 propertyManager = null;
                 RefreshTracks();
             }
@@ -389,7 +404,7 @@ namespace LocalPlaylistMaster
             {
                 ClearSelection();
                 propertyManager?.ApplyChanges();
-                manager?.UpdateRemotes(propertyManager?.GetCollection<Remote>() ?? throw new Exception()).Wait();
+                Manager?.UpdateRemotes(propertyManager?.GetCollection<Remote>() ?? throw new Exception()).Wait();
                 propertyManager = null;
                 RefreshTracks();
             }
@@ -400,7 +415,7 @@ namespace LocalPlaylistMaster
         /// </summary>
         public async void DownloadSelectedTracks()
         {
-            if (manager == null) return;
+            if (Manager == null) return;
             if (propertyManager?.MyType != typeof(Track)) return;
             if (propertyManager.PendingChanges)
             {
@@ -417,7 +432,7 @@ namespace LocalPlaylistMaster
             Host.IsEnabled = false;
             await Task.Run(async () =>
             {
-                await manager.DownloadTracks(tracks, reporter);
+                await Manager.DownloadTracks(tracks, reporter);
             });
             Host.IsEnabled = true;
             progressDisplayWindow.Close();
@@ -426,7 +441,7 @@ namespace LocalPlaylistMaster
 
         public async void FetchAll()
         {
-            if (manager == null) return;
+            if (Manager == null) return;
             if (propertyManager?.PendingChanges ?? false)
             {
                 MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -442,12 +457,12 @@ namespace LocalPlaylistMaster
             await Task.Run(async () =>
             {
                 int currentOffset = 0;
-                while (currentOffset < manager.GetRemoteCount())
+                while (currentOffset < Manager.GetRemoteCount())
                 {
-                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    var remotes = await Manager.GetRemotes(VIEW_SIZE, currentOffset);
                     foreach (var remote in remotes)
                     {
-                        await manager.FetchRemote(remote.Id, reporter);
+                        await Manager.FetchRemote(remote.Id, reporter);
                     }
                     currentOffset += VIEW_SIZE;
                 }
@@ -460,7 +475,7 @@ namespace LocalPlaylistMaster
 
         public async void DownloadAll()
         {
-            if (manager == null) return;
+            if (Manager == null) return;
             if (propertyManager?.PendingChanges ?? false)
             {
                 MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -476,10 +491,10 @@ namespace LocalPlaylistMaster
             await Task.Run(async () =>
             {
                 int currentOffset = 0;
-                while (currentOffset < manager.GetTrackCount())
+                while (currentOffset < Manager.GetTrackCount())
                 {
-                    var tracks = await manager.GetTracks(VIEW_SIZE, currentOffset);
-                    await manager.DownloadTracks(tracks, reporter);
+                    var tracks = await Manager.GetTracks(VIEW_SIZE, currentOffset);
+                    await Manager.DownloadTracks(tracks, reporter);
                     currentOffset += VIEW_SIZE;
                 }
             });
@@ -489,9 +504,9 @@ namespace LocalPlaylistMaster
             RefreshAll();
         }
 
-        public async void SyncAll()
+        public async void SyncNew()
         {
-            if (manager == null) return;
+            if (Manager == null) return;
             if (propertyManager?.PendingChanges ?? false)
             {
                 MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -507,12 +522,12 @@ namespace LocalPlaylistMaster
             await Task.Run(async () =>
             {
                 int currentOffset = 0;
-                while (currentOffset < manager.GetRemoteCount())
+                while (currentOffset < Manager.GetRemoteCount())
                 {
-                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    var remotes = await Manager.GetRemotes(VIEW_SIZE, currentOffset);
                     foreach (var remote in remotes)
                     {
-                        await manager.SyncRemote(remote.Id, reporter);
+                        await Manager.SyncRemote(remote.Id, reporter);
                     }
                     currentOffset += VIEW_SIZE;
                 }

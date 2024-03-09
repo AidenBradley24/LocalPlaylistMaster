@@ -1,17 +1,5 @@
 ﻿using LocalPlaylistMaster.Backend;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace LocalPlaylistMaster
 {
@@ -20,11 +8,43 @@ namespace LocalPlaylistMaster
     /// </summary>
     public partial class ProgressDisplay : Window
     {
+        private readonly ProgressModel progressModel;
+        private bool messageVisible = false;
+        private bool closing = false;
+
         public ProgressDisplay(ProgressModel model)
         {
             InitializeComponent();
             Topmost = true;
             DataContext = model;
+            progressModel = model;
+            model.PropertyChanged += Model_PropertyChanged;
+        }
+
+        private void Model_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if(e.PropertyName == nameof(ProgressModel.Message) && progressModel.Message != null)
+            {
+                messageVisible = true;
+                MessageBox.Show(progressModel.Message.Detail, progressModel.Message.Title, MessageBoxButton.OK, progressModel.Message.Type switch
+                {
+                    ProgressModel.MessageBox.MessageType.info => MessageBoxImage.Information,
+                    ProgressModel.MessageBox.MessageType.warning => MessageBoxImage.Warning,
+                    ProgressModel.MessageBox.MessageType.error => MessageBoxImage.Error,
+                    _ => MessageBoxImage.None,
+                },MessageBoxResult.OK,MessageBoxOptions.None);
+                messageVisible = false;
+                if(closing) Close();
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            closing = true;
+            if(messageVisible)
+            {
+                e.Cancel = true;
+            }
         }
     }
 }

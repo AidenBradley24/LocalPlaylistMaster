@@ -11,6 +11,7 @@ namespace LocalPlaylistMaster.Backend
         private string titleText = "";
         private string detailText = "";
         private int progress = 0;
+        private MessageBox? message;
 
         public string TitleText
         {
@@ -44,9 +45,14 @@ namespace LocalPlaylistMaster.Backend
             }
         }
 
-        public ProgressModel()
+        public MessageBox? Message
         {
-
+            get => message;
+            internal set
+            {
+                message = value;
+                OnPropertyChanged(nameof(Message));
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -55,7 +61,7 @@ namespace LocalPlaylistMaster.Backend
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public enum ReportType { TitleText, DetailText, Progress }
+        public enum ReportType { TitleText, DetailText, Progress, Message }
 
         public void Report(ReportType type, object report)
         {
@@ -71,6 +77,9 @@ namespace LocalPlaylistMaster.Backend
                 case ReportType.Progress:
                     Progress = (int)report;
                     break;
+                case ReportType.Message:
+                    Message = (MessageBox?)report;
+                    break;
             }
         }
 
@@ -80,6 +89,22 @@ namespace LocalPlaylistMaster.Backend
             {
                 Report(obj.type, obj.report);
             });
+        }
+
+        public class MessageBox
+        {
+            public string Title { get; set; }
+            public string Detail { get; set; }
+            public MessageType Type { get; set; }
+
+            public MessageBox()
+            {
+                Title = "";
+                Detail = "";
+                Type = MessageType.none;
+            }
+
+            public enum MessageType { error, warning, info, none }
         }
     }
 }

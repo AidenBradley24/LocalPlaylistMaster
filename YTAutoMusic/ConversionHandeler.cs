@@ -1,4 +1,5 @@
-﻿using static LocalPlaylistMaster.Backend.ProgressModel;
+﻿using System.Diagnostics;
+using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -25,7 +26,7 @@ namespace LocalPlaylistMaster.Backend
             {
                 string originalName = fileMap[track.RemoteId].FullName;
                 string newName = Path.Combine(finalDir.FullName, $"{track.Id}.{TARGET_FILE_EXTENSION}");
-                argumentQueue.Enqueue($"-i \"{originalName}\" \"{newName}\"");
+                argumentQueue.Enqueue($"-i \"{originalName}\" \"{newName}\" -y");
             }
         }
 
@@ -60,7 +61,6 @@ namespace LocalPlaylistMaster.Backend
         {
             var ffmpeg = dependencyProcessManager.CreateFfmpegProcess();
             ffmpeg.StartInfo.Arguments = args;
-            ffmpeg.StartInfo.UseShellExecute = false;
             ffmpeg.StartInfo.CreateNoWindow = true;
             ffmpeg.Start();
             await ffmpeg.WaitForExitAsync();

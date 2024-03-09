@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Windows;
+﻿using System.Windows;
 using LocalPlaylistMaster.Backend;
-using LocalPlaylistMaster.Backend.Extensions;
-using Microsoft.Win32;
 
 namespace LocalPlaylistMaster
 {

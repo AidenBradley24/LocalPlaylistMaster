@@ -47,11 +47,8 @@
         <None Update="Dependencies\Dependencies_README.md">
           <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </None>
-        <None Update="Dependencies\ffmpeg.exe">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Dependencies\yt-dlp.exe">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <None Update="Dependencies\fetch_all.bat">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 </Project>

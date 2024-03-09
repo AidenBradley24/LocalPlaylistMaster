@@ -42,13 +42,12 @@
                     <MenuItem Header="_Add Remote" Click="AddRemote"/>
                     <MenuItem Header="_Fetch All" Click="FetchAll"/>
                     <MenuItem Header="_Download All" Click="DownloadAll"/>
-                    <MenuItem Header="_Sync All" Click="SyncAll"/>
+                    <MenuItem Header="_Sync New" Click="SyncNew"/>
                 </MenuItem>
                 <MenuItem Header="_Export"></MenuItem>
             </Menu>
             <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray">
-                <Image Source="{Binding StatusImage}"></Image>
-                <TextBlock Text="{Binding StatusText}"/>
+                <TextBlock Text="{Binding DbName}" Foreground="White" Padding="5,0" VerticalAlignment="Center"/>
             </StackPanel>
 
             <Grid>
@@ -151,22 +150,16 @@
                                     <!-- Add more CheckBoxes for additional settings -->
                                 </StackPanel>
                             </StackPanel>
-                            
+
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
                             <Button Click="CancelItemUpdate"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
                             <Button Click="ConfirmItemUpdate" Content="Update" Padding="20,8" Margin="5" HorizontalAlignment="Left"/>
                             <Button Click="DownloadAudioButton" Content="Download Audio" Padding="20,8" Margin="5" HorizontalAlignment="Right"/>
                         </StackPanel>
-                        <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                            <TextBlock Text="{Binding CreationMessage, Mode=OneWay}" HorizontalAlignment="Right" Margin="5,0"/>
-                            <Separator/>
-                        </StackPanel>
                     </DockPanel>
                 </Border>
             </Grid>
-            
-            
         </DockPanel>
     </Grid>
 </Window>
