@@ -52,5 +52,3 @@ echo yt-dlp downloaded
 REM everything complete
 echo everything downloaded
 rmdir /s /q "%download_dir%"
-
-pause
