@@ -6,7 +6,7 @@ namespace LocalPlaylistMaster.Backend
 {
     internal class PlaylistFileBuilder
     {
-        public PlaylistBundle PlaylistBundle { get; set; }
+        public Playlist PlaylistBundle { get; set; }
         public DirectoryInfo TrackDirectory { get; set; }
 
         private readonly IEnumerable<PlaylistFile> playlistFileOptions;
@@ -71,6 +71,6 @@ namespace LocalPlaylistMaster.Backend
         /// <param name="targetDirectory">Directory to place the file</param>
         /// <param name="trackDirectory">Location of the tagged audio files</param>
         /// <param name="bundle">Playlist information</param>
-        public abstract void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, PlaylistBundle bundle);
+        public abstract void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, Playlist bundle);
     }
 }

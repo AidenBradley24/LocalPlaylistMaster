@@ -10,7 +10,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
     /// </summary>
     internal abstract class XspfFile : PlaylistFile
     {
-        protected PlaylistBundle bundle;
+        protected Playlist bundle;
 
         /// <summary>
         /// Output file name such as 'playlist.xspf'
@@ -41,7 +41,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
 
         public abstract XElement GetPlaylistItemExtension(XNamespace appNS, int index);
 
-        public override void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, PlaylistBundle bundle)
+        public override void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, Playlist bundle)
         {
             this.bundle = bundle;
 

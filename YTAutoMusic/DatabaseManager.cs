@@ -73,6 +73,12 @@ namespace LocalPlaylistMaster.Backend
                     command.CommandText = SQL_Resources.create_tracks;
                     command.ExecuteNonQuery();
                 }
+
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    command.CommandText = SQL_Resources.create_playlists;
+                    command.ExecuteNonQuery();
+                }
             }
 
             audioDir = Directory.CreateDirectory(Path.Combine(dir.FullName, "audio"));
@@ -218,7 +224,7 @@ namespace LocalPlaylistMaster.Backend
 
             while (await reader.ReadAsync())
             {
-                Remote track = new(
+                Remote remote = new(
                     reader.GetInt32("Id"),
                     reader.GetString("Name"),
                     reader.GetString("Description"),
@@ -226,10 +232,33 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetInt32("TrackCount"),
                     (RemoteType)reader.GetInt32("Type"),
                     (RemoteSettings)reader.GetInt32("Settings"));
-                remotes.Add(track);
+                remotes.Add(remote);
             }
 
             return remotes;
+        }
+
+        public async Task<IEnumerable<Playlist>> GetPlaylists(int limit, int offset)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = $"SELECT * FROM Playlists LIMIT @Limit OFFSET @Offset";
+            command.Parameters.AddWithValue("@Limit", limit);
+            command.Parameters.AddWithValue("@Offset", offset);
+
+            using var reader = await command.ExecuteReaderAsync();
+            List<Playlist> playlists = new();
+
+            while (await reader.ReadAsync())
+            {
+                Playlist playlist = new(
+                    reader.GetInt32("Id"),
+                    reader.GetString("Name"),
+                    reader.GetString("Description"),
+                    reader.GetString("Tracks"));
+                playlists.Add(playlist);
+            }
+
+            return playlists;
         }
 
         /// <summary>

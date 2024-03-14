@@ -4,7 +4,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
     internal abstract class M3U8File : PlaylistFile
     {
-        public override void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, PlaylistBundle bundle)
+        public override void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, Playlist bundle)
         {
             using FileStream stream = File.Open(Path.Combine(targetDirectory.FullName, "playlist.m3u8"), FileMode.Create);
             using StreamWriter writer = new(stream, Encoding.UTF8);

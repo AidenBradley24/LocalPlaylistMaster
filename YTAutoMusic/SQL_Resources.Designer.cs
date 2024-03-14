@@ -61,6 +61,20 @@ namespace LocalPlaylistMaster.Backend {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to CREATE TABLE Playlists (
+        ///	Id INTEGER PRIMARY KEY,
+        ///	Name TEXT,
+        ///	Description TEXT,
+        ///	Tracks TEXT,
+        ///);.
+        /// </summary>
+        internal static string create_playlists {
+            get {
+                return ResourceManager.GetString("create_playlists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to CREATE TABLE Remotes (
         ///	Id INTEGER PRIMARY KEY,
         ///	Name TEXT,

@@ -58,6 +58,8 @@ namespace LocalPlaylistMaster
             {
                 isItemSelected = value;
                 OnPropertyChanged(nameof(IsItemSelected));
+                OnPropertyChanged(nameof(EditingTrack));
+                OnPropertyChanged(nameof(EditingRemote));
             }
         }
 
@@ -92,7 +94,7 @@ namespace LocalPlaylistMaster
         private bool editingTrack = true;
         public bool EditingTrack
         {
-            get => editingTrack;
+            get => editingTrack && IsItemSelected;
             set
             {
                 editingTrack = value;
@@ -103,7 +105,7 @@ namespace LocalPlaylistMaster
 
         public bool EditingRemote
         {
-            get => !EditingTrack;
+            get => !editingTrack && IsItemSelected;
             set
             {
                 editingTrack = !value;
@@ -176,15 +178,34 @@ namespace LocalPlaylistMaster
 
         public ICommand PreviousPageCommand { get; }
         public ICommand NextPageCommand { get; }
+        public ICommand FetchAllCommand { get; }
+        public ICommand DownloadAllCommand { get; }
+        public ICommand SyncNewCommand { get; }
+        public ICommand RemoveTrackSelectionFromDbCommand { get; }
+        public ICommand RemoveRemoteSelectionFromDbCommand { get; }
+        public ICommand DownloadSelectedTracksCommand { get; }
 
         public MainWindowModel(MainWindow host)
         {
             Host = host;
-            PreviousPageCommand = new RelayCommand(PreviousPage, CanNavigatePrevious);
-            NextPageCommand = new RelayCommand(NextPage, CanNavigateNext);
             tracks = [];
             remotes = [];
+
+            PreviousPageCommand = new RelayCommand(PreviousPage, CanNavigatePrevious);
+            NextPageCommand = new RelayCommand(NextPage, CanNavigateNext);
+            FetchAllCommand = new RelayCommand(FetchAll, HasDb);
+            DownloadAllCommand = new RelayCommand(DownloadAll, HasDb);
+            SyncNewCommand = new RelayCommand(SyncNew, HasDb);
+            RemoveTrackSelectionFromDbCommand = new RelayCommand(RemoveTrackSelectionFromDb,
+                () => manager != null && EditingTrack);
+            RemoveRemoteSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
+                () => manager != null && EditingRemote);
+            DownloadSelectedTracksCommand = new RelayCommand(DownloadSelectedTracks,
+                () => manager != null && EditingTrack);
+
         }
+
+        private bool HasDb() => manager != null;
 
         public void RefreshAll()
         {
@@ -536,6 +557,16 @@ namespace LocalPlaylistMaster
             Host.IsEnabled = true;
             progressDisplayWindow.Close();
             RefreshAll();
+        }
+
+        public async void RemoveTrackSelectionFromDb()
+        {
+
+        }
+
+        public async void RemoveRemoteSelectionFromDb()
+        {
+
         }
     }
 }
