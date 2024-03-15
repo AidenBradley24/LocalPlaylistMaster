@@ -3,17 +3,17 @@ using LocalPlaylistMaster.Backend;
 
 namespace LocalPlaylistMaster
 {
-    public partial class AddRemoteWindow : Window
+    public partial class NewRemoteWindow : Window
     {
-        private readonly RemoteModel remoteModel;
-        private readonly DatabaseManager playlistManager;
+        private readonly RemoteModel model;
+        private readonly DatabaseManager manager;
 
-        public AddRemoteWindow(DatabaseManager manager)
+        public NewRemoteWindow(DatabaseManager manager)
         {
             InitializeComponent();
-            remoteModel = new RemoteModel();
-            DataContext = remoteModel;
-            playlistManager = manager;
+            model = new RemoteModel();
+            DataContext = model;
+            this.manager = manager;
         }
 
         private void CancelButton(object sender, RoutedEventArgs e)
@@ -28,13 +28,13 @@ namespace LocalPlaylistMaster
 
         private async Task Add()
         {
-            Remote? r = remoteModel.Export();
+            Remote? r = model.Export();
             if (r == null)
             {
                 return;
             }
 
-            int newRemoteId = await playlistManager.IngestRemote(r);
+            int newRemoteId = await manager.IngestRemote(r);
 
             var messageResult = MessageBox.Show("Do you want to sync now with the remote?", "Sync", MessageBoxButton.YesNo);
             if (messageResult == MessageBoxResult.Yes)
@@ -47,7 +47,7 @@ namespace LocalPlaylistMaster
 
                 await Task.Run(async () =>
                 {
-                    await playlistManager.FetchRemote(newRemoteId, reporter);
+                    await manager.FetchRemote(newRemoteId, reporter);
                 });
 
                 IsEnabled = true;

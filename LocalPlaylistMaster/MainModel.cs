@@ -8,7 +8,10 @@ using LocalPlaylistMaster.ValueConverters;
 
 namespace LocalPlaylistMaster
 {
-    public class MainWindowModel : INotifyPropertyChanged
+    /// <summary>
+    /// Most of the frontend logic for the main window
+    /// </summary>
+    public class MainModel : INotifyPropertyChanged
     {
         public MainWindow Host { get; init; }
         public DatabaseManager? Manager
@@ -50,6 +53,17 @@ namespace LocalPlaylistMaster
             }
         }
 
+        private ObservableCollection<Playlist> playlists;
+        public ObservableCollection<Playlist> Playlists
+        {
+            get { return playlists; }
+            set
+            {
+                playlists = value;
+                OnPropertyChanged(nameof(Playlists));
+            }
+        }
+
         private bool isItemSelected;
         public bool IsItemSelected
         {
@@ -86,31 +100,49 @@ namespace LocalPlaylistMaster
         private const int VIEW_SIZE = 50;
         private int currentTrackOffset = 0;
         private int currentRemoteOffset = 0;
+        private int currentPlaylistOffset = 0;
 
         #region Edit Records Properties
 
         CollectionPropertyManager? propertyManager;
 
-        private bool editingTrack = true;
+        private enum EditType { None, Track, Remote, Playlist }
+        private EditType currentEdit;
+
+        private void OnEditTypeChanged()
+        {
+            OnPropertyChanged(nameof(EditingTrack));
+            OnPropertyChanged(nameof(EditingRemote));
+            OnPropertyChanged(nameof(EditingPlaylist));
+        }
+
         public bool EditingTrack
         {
-            get => editingTrack && IsItemSelected;
+            get => currentEdit == EditType.Track && IsItemSelected;
             set
             {
-                editingTrack = value;
-                OnPropertyChanged(nameof(EditingTrack));
-                OnPropertyChanged(nameof(EditingRemote));
+                currentEdit = EditType.Track;
+                OnEditTypeChanged();
             }
         }
 
         public bool EditingRemote
         {
-            get => !editingTrack && IsItemSelected;
+            get => currentEdit == EditType.Remote && IsItemSelected;
             set
             {
-                editingTrack = !value;
-                OnPropertyChanged(nameof(EditingRemote));
-                OnPropertyChanged(nameof(EditingTrack));
+                currentEdit = EditType.Remote;
+                OnEditTypeChanged();
+            }
+        }
+
+        public bool EditingPlaylist
+        {
+            get => currentEdit == EditType.Playlist && IsItemSelected;
+            set
+            {
+                currentEdit = EditType.Playlist;
+                OnEditTypeChanged();
             }
         }
 
@@ -176,33 +208,55 @@ namespace LocalPlaylistMaster
 
         #endregion
 
+        public ICommand NewRemoteCommand { get; }
+        public ICommand NewPlaylistCommand { get; }
+
+        public ICommand RemoveTrackSelectionFromDbCommand { get; }
+        public ICommand RemoveRemoteSelectionFromDbCommand { get; }
+        public ICommand RemovePlaylistSelectionFromDbCommand { get; }
+
+        public ICommand FetchRemoteSelectionCommand { get; }
+        public ICommand DownloadRemoteSelectionCommand { get; }
+        public ICommand SyncRemoteSelectionCommand { get; }
+
         public ICommand PreviousPageCommand { get; }
         public ICommand NextPageCommand { get; }
         public ICommand FetchAllCommand { get; }
         public ICommand DownloadAllCommand { get; }
         public ICommand SyncNewCommand { get; }
-        public ICommand RemoveTrackSelectionFromDbCommand { get; }
-        public ICommand RemoveRemoteSelectionFromDbCommand { get; }
         public ICommand DownloadSelectedTracksCommand { get; }
 
-        public MainWindowModel(MainWindow host)
+        public MainModel(MainWindow host)
         {
             Host = host;
             tracks = [];
             remotes = [];
+            playlists = [];
+
+            NewRemoteCommand = new RelayCommand(AddRemote, HasDb);
+            NewPlaylistCommand = new RelayCommand(AddPlaylist, HasDb);
+
+            RemoveTrackSelectionFromDbCommand = new RelayCommand(RemoveTrackSelectionFromDb,
+                () => manager != null && EditingTrack);
+            RemoveRemoteSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
+                () => manager != null && EditingRemote);
+            RemovePlaylistSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
+                () => manager != null && EditingPlaylist);
+
+            FetchRemoteSelectionCommand = new RelayCommand(FetchRemoteSelection,
+                () => manager != null && EditingRemote);
+            DownloadRemoteSelectionCommand = new RelayCommand(DownloadRemoteSelection,
+                () => manager != null && EditingRemote);
+            SyncRemoteSelectionCommand = new RelayCommand(SyncRemoteSelection,
+                () => manager != null && EditingRemote);
 
             PreviousPageCommand = new RelayCommand(PreviousPage, CanNavigatePrevious);
             NextPageCommand = new RelayCommand(NextPage, CanNavigateNext);
             FetchAllCommand = new RelayCommand(FetchAll, HasDb);
             DownloadAllCommand = new RelayCommand(DownloadAll, HasDb);
             SyncNewCommand = new RelayCommand(SyncNew, HasDb);
-            RemoveTrackSelectionFromDbCommand = new RelayCommand(RemoveTrackSelectionFromDb,
-                () => manager != null && EditingTrack);
-            RemoveRemoteSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
-                () => manager != null && EditingRemote);
             DownloadSelectedTracksCommand = new RelayCommand(DownloadSelectedTracks,
                 () => manager != null && EditingTrack);
-
         }
 
         private bool HasDb() => manager != null;
@@ -211,6 +265,7 @@ namespace LocalPlaylistMaster
         {
             RefreshTracks();
             RefreshRemotes();
+            RefreshPlaylists();
         }
 
         public void RefreshTracks()
@@ -246,8 +301,24 @@ namespace LocalPlaylistMaster
             task.Wait(); // TODO add loading bar
 
             Remotes = new ObservableCollection<Remote>(task.Result);
-            Host.trackGrid.SelectedItems.Clear();
+            Host.remoteGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Remotes));
+        }
+
+        public void RefreshPlaylists()
+        {
+            if (Manager == null)
+            {
+                Playlists = [];
+                return;
+            }
+
+            var task = Manager.GetPlaylists(VIEW_SIZE, currentPlaylistOffset);
+            task.Wait(); // TODO add loading bar
+
+            Playlists = new ObservableCollection<Playlist>(task.Result);
+            Host.playlistGrid.SelectedItems.Clear();
+            OnPropertyChanged(nameof(Playlists));
         }
 
         private void PreviousPage()
@@ -260,6 +331,11 @@ namespace LocalPlaylistMaster
                     break;
                 case "remotesTab":
                     currentRemoteOffset -= VIEW_SIZE;
+                    RefreshRemotes();
+                    break;
+                case "playlistsTab":
+                    currentPlaylistOffset -= VIEW_SIZE;
+                    RefreshPlaylists();
                     break;
             }
         }
@@ -272,6 +348,7 @@ namespace LocalPlaylistMaster
             {
                 "tracksTab" => currentTrackOffset > 0,
                 "remotesTab" => currentRemoteOffset > 0,
+                "playlistsTab" => currentPlaylistOffset > 0,
                 _ => true,
             };
         }
@@ -286,6 +363,11 @@ namespace LocalPlaylistMaster
                     break;
                 case "remotesTab":
                     currentRemoteOffset += VIEW_SIZE;
+                    RefreshTracks();
+                    break;
+                case "playlistsTab":
+                    currentPlaylistOffset += VIEW_SIZE;
+                    RefreshPlaylists();
                     break;
             }
         }
@@ -298,6 +380,7 @@ namespace LocalPlaylistMaster
             {
                 "tracksTab" => currentTrackOffset + VIEW_SIZE < Manager.GetTrackCount(),
                 "remotesTab" => currentRemoteOffset + VIEW_SIZE < Manager.GetRemoteCount(),
+                "playlistsTab" => currentPlaylistOffset + VIEW_SIZE < Manager.GetPlaylistCount(),
                 _ => true,
             };
         }
@@ -319,21 +402,13 @@ namespace LocalPlaylistMaster
                 if (result == MessageBoxResult.No)
                 {
                     ClearSelection();
-
-                    // reselect previous
-                    IsItemSelected = true;
-                    //foreach (var item in propertyManager.GetCollection<Track>())
-                    //{
-                    //    Host.trackGrid.SelectedItems.Add(item);
-                    //}
-
-                    Host.trackGrid.InvalidateVisual();
                     return;
                 }
             }
 
             if (items is IEnumerable<Track> tracks) DisplayTracksEdit(tracks);
             else if (items is IEnumerable<Remote> remotes) DisplayRemotesEdit(remotes);
+            else if (items is IEnumerable<Playlist> playlists) DisplayPlaylistsEdit(playlists);
 
             selectedCount = items.Count();
             OnPropertyChanged(nameof(SelectedText));
@@ -352,6 +427,10 @@ namespace LocalPlaylistMaster
             else if (EditingRemote)
             {
                 Host.remoteGrid.UnselectAll();
+            }
+            else if (EditingPlaylist)
+            {
+                Host.playlistGrid.UnselectAll();
             }
             IsItemSelected = false;
             ignoreSelection = false;
@@ -399,6 +478,27 @@ namespace LocalPlaylistMaster
             }
         }
 
+        private void DisplayPlaylistsEdit(IEnumerable<Playlist> playlistSelection)
+        {
+            if (!playlistSelection.Any())
+            {
+                IsItemSelected = false;
+                return;
+            }
+
+            IsItemSelected = true;
+            EditingPlaylist = true;
+
+            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription)];
+            string[] ACTUAL_NAMES = [nameof(Playlist.Name), nameof(Playlist.Description)];
+
+            propertyManager = new(typeof(Playlist), playlistSelection, EDIT_NAMES, ACTUAL_NAMES);
+            foreach (string edit in EDIT_NAMES)
+            {
+                OnPropertyChanged(edit);
+            }
+        }
+
         public void CancelItemUpdate()
         {
             if (propertyManager?.MyType == typeof(Track))
@@ -427,8 +527,52 @@ namespace LocalPlaylistMaster
                 propertyManager?.ApplyChanges();
                 Manager?.UpdateRemotes(propertyManager?.GetCollection<Remote>() ?? throw new Exception()).Wait();
                 propertyManager = null;
-                RefreshTracks();
+                RefreshRemotes();
             }
+            else if(propertyManager?.MyType == typeof(Playlist))
+            {
+                ClearSelection();
+                propertyManager?.ApplyChanges();
+                Manager?.UpdatePlaylists(propertyManager?.GetCollection<Playlist>() ?? throw new Exception()).Wait();
+                propertyManager = null;
+                RefreshPlaylists();
+            }
+        }
+
+        #region Db Updates
+
+        private DatabaseManager AssertDb()
+        {
+            if (manager == null)
+            {
+                MessageBox.Show("No database is open.\nCreate a playlist first.", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw new InvalidOperationException("Database must be open!");
+            }
+            return manager;
+        }
+
+        private bool HasPendingChanges()
+        {
+            if (propertyManager?.PendingChanges ?? false)
+            {
+                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return true;
+            }
+            return false;
+        }
+
+        private delegate Task TrackedFunction(IProgress<(ProgressModel.ReportType, object report)> reporter);
+
+        private async Task TrackedTask(TrackedFunction function)
+        {
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            Host.IsEnabled = false;
+            await function.Invoke(reporter);
+            Host.IsEnabled = true;
+            progressDisplayWindow.Close();
         }
 
         /// <summary>
@@ -436,137 +580,172 @@ namespace LocalPlaylistMaster
         /// </summary>
         public async void DownloadSelectedTracks()
         {
-            if (Manager == null) return;
+            var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Track)) return;
-            if (propertyManager.PendingChanges)
-            {
-                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
+            if (HasPendingChanges()) return;
 
             IEnumerable<Track> tracks = propertyManager.GetCollection<Track>();
             tracks = tracks.Where(x => !x.Downloaded);
-            ProgressModel progressModel = new();
-            ProgressDisplay progressDisplayWindow = new(progressModel);
-            var reporter = progressModel.GetProgressReporter();
-            progressDisplayWindow.Show();
-            Host.IsEnabled = false;
-            await Task.Run(async () =>
+
+            await TrackedTask(async (reporter) =>
             {
-                await Manager.DownloadTracks(tracks, reporter);
+                await manager.DownloadTracks(tracks, reporter);
             });
-            Host.IsEnabled = true;
-            progressDisplayWindow.Close();
+
             RefreshTracks();
         }
 
         public async void FetchAll()
         {
-            if (Manager == null) return;
-            if (propertyManager?.PendingChanges ?? false)
-            {
-                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
+            var manager = AssertDb();
+            if (HasPendingChanges()) return;
 
-            ProgressModel progressModel = new();
-            ProgressDisplay progressDisplayWindow = new(progressModel);
-            var reporter = progressModel.GetProgressReporter();
-            progressDisplayWindow.Show();
-            Host.IsEnabled = false;
-
-            await Task.Run(async () =>
+            await TrackedTask(async (reporter) =>
             {
                 int currentOffset = 0;
-                while (currentOffset < Manager.GetRemoteCount())
+                while (currentOffset < manager.GetRemoteCount())
                 {
-                    var remotes = await Manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
                     foreach (var remote in remotes)
                     {
-                        await Manager.FetchRemote(remote.Id, reporter);
+                        await manager.FetchRemote(remote.Id, reporter);
                     }
                     currentOffset += VIEW_SIZE;
                 }
             });
 
-            Host.IsEnabled = true;
-            progressDisplayWindow.Close();
             RefreshAll();
         }
 
         public async void DownloadAll()
         {
-            if (Manager == null) return;
-            if (propertyManager?.PendingChanges ?? false)
-            {
-                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
+            var manager = AssertDb();
+            if (HasPendingChanges()) return;
 
-            ProgressModel progressModel = new();
-            ProgressDisplay progressDisplayWindow = new(progressModel);
-            var reporter = progressModel.GetProgressReporter();
-            progressDisplayWindow.Show();
-            Host.IsEnabled = false;
-
-            await Task.Run(async () =>
+            await TrackedTask(async (reporter) =>
             {
                 int currentOffset = 0;
-                while (currentOffset < Manager.GetTrackCount())
+                while (currentOffset < manager.GetTrackCount())
                 {
-                    var tracks = await Manager.GetTracks(VIEW_SIZE, currentOffset);
-                    await Manager.DownloadTracks(tracks, reporter);
+                    var tracks = await manager.GetTracks(VIEW_SIZE, currentOffset);
+                    await manager.DownloadTracks(tracks, reporter);
                     currentOffset += VIEW_SIZE;
                 }
             });
 
-            Host.IsEnabled = true;
-            progressDisplayWindow.Close();
             RefreshAll();
         }
 
         public async void SyncNew()
         {
-            if (Manager == null) return;
-            if (propertyManager?.PendingChanges ?? false)
-            {
-                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
+            var manager = AssertDb();
+            if (HasPendingChanges()) return;
 
-            ProgressModel progressModel = new();
-            ProgressDisplay progressDisplayWindow = new(progressModel);
-            var reporter = progressModel.GetProgressReporter();
-            progressDisplayWindow.Show();
-            Host.IsEnabled = false;
-
-            await Task.Run(async () =>
+            await TrackedTask(async (reporter) =>
             {
                 int currentOffset = 0;
-                while (currentOffset < Manager.GetRemoteCount())
+                while (currentOffset < manager.GetRemoteCount())
                 {
-                    var remotes = await Manager.GetRemotes(VIEW_SIZE, currentOffset);
+                    var remotes = await manager.GetRemotes(VIEW_SIZE, currentOffset);
                     foreach (var remote in remotes)
                     {
-                        await Manager.SyncRemote(remote.Id, reporter);
+                        await manager.SyncRemote(remote.Id, reporter);
                     }
                     currentOffset += VIEW_SIZE;
                 }
             });
 
-            Host.IsEnabled = true;
-            progressDisplayWindow.Close();
+            RefreshAll();
+        }
+
+        public void AddRemote()
+        {
+            var manager = AssertDb();
+            NewRemoteWindow window = new(manager)
+            {
+                Topmost = true,
+                Owner = Host,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            window.ShowDialog();
+            RefreshAll();
+        }
+
+        public void AddPlaylist()
+        {
+            var manager = AssertDb();
+            NewPlaylistWindow window = new(manager)
+            {
+                Topmost = true,
+                Owner = Host,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            window.ShowDialog();
             RefreshAll();
         }
 
         public async void RemoveTrackSelectionFromDb()
         {
-
+            // TODO
         }
 
         public async void RemoveRemoteSelectionFromDb()
         {
-
+            // TODO
         }
+
+        public async void RemotePlaylistSelectionFromDb()
+        {
+            // TODO
+        }
+
+        public async void FetchRemoteSelection()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Remote)) return;
+            if (HasPendingChanges()) return;
+
+            await TrackedTask(async (reporter) =>
+            {
+                foreach (var remote in propertyManager.GetCollection<Remote>())
+                {
+                    await manager.FetchRemote(remote.Id, reporter);
+                }
+            });
+
+            RefreshAll();
+        }
+
+        public async void DownloadRemoteSelection()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Remote)) return;
+            if (HasPendingChanges()) return;
+
+            await TrackedTask(async (reporter) =>
+            {
+                foreach (var remote in propertyManager.GetCollection<Remote>())
+                {
+                    await manager.DownloadTracks(remote.Id, reporter);
+                }
+            });
+
+            RefreshAll();
+        }
+
+        public async void SyncRemoteSelection()
+        {
+            var manager = AssertDb();
+            if (!EditingRemote) return;
+            if (HasPendingChanges()) return;
+            // TODO
+
+            RefreshAll();
+        }
+        #endregion
     }
 }

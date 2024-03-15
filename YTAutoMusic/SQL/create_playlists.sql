@@ -2,5 +2,5 @@
 	Id INTEGER PRIMARY KEY,
 	Name TEXT,
 	Description TEXT,
-	Tracks TEXT,
+	Tracks TEXT
 );

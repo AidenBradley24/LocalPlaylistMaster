@@ -31,7 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="AddRemoteWindow.xaml.cs">
+    <Compile Update="NewRemoteWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="NewPlaylistWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

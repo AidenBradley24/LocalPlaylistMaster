@@ -15,19 +15,19 @@ namespace LocalPlaylistMaster
     public partial class MainWindow : Window
     {
         private readonly DependencyProcessManager dependencyProcessManager;
-        public DatabaseManager? PlaylistManager 
+        public DatabaseManager? DbManager 
         { 
             get => Model.Manager; 
             set => Model.Manager = value;
         }
 
-        internal MainWindowModel Model => DataContext as MainWindowModel ?? throw new Exception();
+        internal MainModel Model => DataContext as MainModel ?? throw new Exception();
         public TabItem CurrentTab => tabControl.SelectedItem as TabItem ?? throw new Exception();
 
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainWindowModel(this);
+            DataContext = new MainModel(this);
 
             try
             {
@@ -54,7 +54,7 @@ namespace LocalPlaylistMaster
 
         private void CreateNewPlaylist(object sender, RoutedEventArgs e)
         {
-            NewPlaylistWindow window = new(dependencyProcessManager)
+            NewDbWindow window = new(dependencyProcessManager)
             {
                 Topmost = true,
                 Owner = this,
@@ -67,27 +67,12 @@ namespace LocalPlaylistMaster
 
         private void AddRemote(object sender, RoutedEventArgs e)
         {
-            if(PlaylistManager == null)
-            {
-                MessageBox.Show("No playlist is open.\nCreate a playlist first.", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            AddRemoteWindow window = new(PlaylistManager)
-            {
-                Topmost = true,
-                Owner = this,
-                ResizeMode = ResizeMode.NoResize,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen
-            };
-
-            window.ShowDialog();
-            Model.RefreshAll();
+            
         }
         
         public void InitializePlaylist(DatabaseManager playlist)
         {
-            PlaylistManager = playlist;
+            DbManager = playlist;
         }
 
         private void OpenExistingPlaylist(object sender, RoutedEventArgs e)
@@ -111,12 +96,12 @@ namespace LocalPlaylistMaster
 
                 try
                 {
-                    PlaylistManager = new DatabaseManager(dir.FullName, dependencyProcessManager, false);
+                    DbManager = new DatabaseManager(dir.FullName, dependencyProcessManager, false);
                     Model.RefreshAll();
                 }
                 catch (Exception ex)
                 {
-                    PlaylistManager = null;
+                    DbManager = null;
                     Model.RefreshAll();
                     MessageBox.Show(ex.Message, "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -135,6 +120,12 @@ namespace LocalPlaylistMaster
         {
             tabChanging = false;
             Model.DisplaySelection(remoteGrid.SelectedItems.Cast<Remote>());
+        }
+
+        private void PlaylistGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            tabChanging = false;
+            Model.DisplaySelection(playlistGrid.SelectedItems.Cast<Playlist>());
         }
 
         private void CancelItemUpdate(object sender, RoutedEventArgs e)

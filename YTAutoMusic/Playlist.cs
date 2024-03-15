@@ -1,11 +1,14 @@
-﻿namespace LocalPlaylistMaster.Backend
+﻿using System.Text.RegularExpressions;
+
+namespace LocalPlaylistMaster.Backend
 {
-    public record Playlist
+    public partial record Playlist
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public List<int> Tracks { get; set; }
+        public int TrackCount => Tracks.Count;
 
         public int UNINITIALIZED = -1;
 
@@ -34,5 +37,17 @@
         {
             return string.Join(',', Tracks);
         }
+
+        public string TruncatedDescription
+        {
+            get
+            {
+                string truncated = Description.Length > 100 ? Description[..97] + "..." : Description;
+                return WhiteSpace().Replace(truncated, " ");
+            }
+        }
+
+        [GeneratedRegex("\\s+")]
+        private static partial Regex WhiteSpace();
     }
 }

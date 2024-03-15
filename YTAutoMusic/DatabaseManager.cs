@@ -22,6 +22,7 @@ namespace LocalPlaylistMaster.Backend
 
         private int trackCount = -1;
         private int remoteCount = -1;
+        private int playlistCount = -1;
         public const int NO_REMOTE = -1;
 
         public DatabaseManager(string dirPath, DependencyProcessManager dependencies, bool newDb)
@@ -143,6 +144,59 @@ namespace LocalPlaylistMaster.Backend
             string query = sb.ToString();
             command.CommandText = query;
             await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task<int> IngestPlaylist(Playlist playlist)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = "INSERT INTO Playlist (Name, Description, Tracks) " +
+                    "VALUES (@Name, @Description, @Tracks); " +
+                    "SELECT LAST_INSERT_ROWID();";
+
+                command.Parameters.AddWithValue("@Name", playlist.Name);
+                command.Parameters.AddWithValue("@Description", playlist.Description);
+                command.Parameters.AddWithValue("@Tracks", playlist.GetTracksString());
+                object? id = await command.ExecuteScalarAsync();
+                await transaction.CommitAsync();
+                InvalidatePlaylistCount();
+                return Convert.ToInt32(id);
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task<int> IngestRemote(Remote remote)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, TrackCount, Type, Settings) " +
+                    "VALUES (@Name, @Description, @Link, @TrackCount, @Type, @Settings); " +
+                    "SELECT LAST_INSERT_ROWID();";
+
+                command.Parameters.AddWithValue("@Name", remote.Name);
+                command.Parameters.AddWithValue("@Description", remote.Description);
+                command.Parameters.AddWithValue("@Link", remote.Link);
+                command.Parameters.AddWithValue("@TrackCount", 0);
+                command.Parameters.AddWithValue("@Type", (int)remote.Type);
+                command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
+                object? id = await command.ExecuteScalarAsync();
+                await transaction.CommitAsync();
+                InvalidateRemoteCount();
+                return Convert.ToInt32(id);
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         /// <summary>
@@ -338,7 +392,7 @@ namespace LocalPlaylistMaster.Backend
                     }
 
                     (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, remoteIds);
-                    ConversionHandeler conversion = new(group, fileMap, audioDir, dependencyProcessManager, reporter);
+                    ConversionHandeler conversion = new(group.Select(t => (t.Id, t.RemoteId)), fileMap, audioDir, dependencyProcessManager, reporter);
                     await conversion.Convert();
                     downloadDir.Delete(true);
                 }
@@ -389,6 +443,87 @@ namespace LocalPlaylistMaster.Backend
         }
 
         /// <summary>
+        /// Download the audio files from the specified remote and update necessary information
+        /// </summary>
+        /// <param name="remote">Remote which to download</param>
+        /// <param name="reporter"></param>
+        /// <returns></returns>
+        public async Task DownloadTracks(int remote, IProgress<(ReportType type, object report)> reporter)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+
+            try
+            {
+                reporter.Report((ReportType.TitleText, $"Downloading Tracks In Remote (ID: {remote})"));
+                RemoteManager? manager = await GetRemoteManager(remote);
+
+                if (manager == null)
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "ERROR!",
+                        Detail = $"Remote was not found in the database!\nId:{remote}",
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                    return;
+                }
+
+                var ids = await GetExistingTrackIdsFromRemote(remote);
+                (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, ids.Select(t => t.remoteId));
+                ConversionHandeler conversion = new(ids, fileMap, audioDir, dependencyProcessManager, reporter);
+                await conversion.Convert();
+                downloadDir.Delete(true);
+
+                List<int> notDownloaded = new();
+
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = $"UPDATE Tracks SET TimeInSeconds = @Length WHERE Id = @Id";
+                command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                foreach (int id in ids.Select(t => t.id))
+                {
+                    FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    if (!audioFile.Exists)
+                    {
+                        notDownloaded.Add(id);
+                        continue;
+                    }
+
+                    Track track = new()
+                    {
+                        Id = id,
+                    };
+
+                    TrackProbe probe = new(audioFile, track, dependencyProcessManager);
+                    await probe.FindDuration();
+
+                    track.Downloaded = true;
+                    command.Parameters["@Id"].Value = track.Id;
+                    command.Parameters["@Length"].Value = track.TimeInSeconds;
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                if (notDownloaded.Any())
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "Tracks not downloaded",
+                        Detail = "The following tracks were not downloaded:\n" + string.Join('\n', notDownloaded.Select(t => $"#{t}")),
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                }
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            await transaction.CommitAsync();
+        }
+
+        /// <summary>
         /// Combination of fetch and download that quickly downloads only new tracks
         /// </summary>
         /// <returns></returns>
@@ -422,7 +557,7 @@ namespace LocalPlaylistMaster.Backend
                 await UpdateRemote(fetchedRemote, manager.ExistingRemote);
                 await GrabIds(fetchedTracks);
 
-                ConversionHandeler conversion = new(fetchedTracks, fileMap, audioDir, dependencyProcessManager, reporter);
+                ConversionHandeler conversion = new(fetchedTracks.Select(t => (t.Id, t.RemoteId)), fileMap, audioDir, dependencyProcessManager, reporter);
                 await conversion.Convert();
                 reporter.Report((ReportType.DetailText, "updating database"));
 
@@ -512,33 +647,24 @@ namespace LocalPlaylistMaster.Backend
             return remoteIds;
         }
 
-        public async Task<int> IngestRemote(Remote remote)
+        /// <summary>
+        /// Get remote ids of tracks already in the database
+        /// </summary>
+        /// <param name="remote">Remote to check</param>
+        /// <returns></returns>
+        private async Task<IEnumerable<(int id, string remoteId)>> GetExistingTrackIdsFromRemote(int remote)
         {
-            using SQLiteTransaction transaction = db.BeginTransaction();
-            try
-            {
-                using SQLiteCommand command = db.CreateCommand();
-                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, TrackCount, Type, Settings) " +
-                    "VALUES (@Name, @Description, @Link, @TrackCount, @Type, @Settings); " +
-                    "SELECT LAST_INSERT_ROWID();";
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT Id, RemoteId FROM Tracks WHERE Remote = @Remote";
+            command.Parameters.AddWithValue("@Remote", remote);
 
-                command.Parameters.AddWithValue("@Name", remote.Name);
-                command.Parameters.AddWithValue("@Description", remote.Description);
-                command.Parameters.AddWithValue("@Link", remote.Link);
-                command.Parameters.AddWithValue("@TrackCount", 0);
-                command.Parameters.AddWithValue("@Type", (int)remote.Type);
-                command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
-                object? id = await command.ExecuteScalarAsync();
-                await transaction.CommitAsync();
-                InvalidateRemoteCount();
-                return Convert.ToInt32(id);
-            }
-            catch
+            using var reader = await command.ExecuteReaderAsync();
+            List<(int id, string remoteId)> ids = new();
+            while (await reader.ReadAsync())
             {
-                transaction.Rollback();
-                throw;
+                ids.Add((reader.GetInt32(0), reader.GetString(1)));
             }
-
+            return ids;
         }
 
         /// <summary>
@@ -689,6 +815,39 @@ namespace LocalPlaylistMaster.Backend
             return updatedCount;
         }
 
+        /// <summary>
+        /// Update existing playlists with new information.
+        /// </summary>
+        /// <param name="playlists">Collection of playlists</param>
+        /// <returns>Number of updates</returns>
+        public async Task<int> UpdatePlaylists(IEnumerable<Playlist> playlists)
+        {
+            int updatedCount = 0;
+
+            using (SQLiteCommand command = db.CreateCommand())
+            {
+                StringBuilder sb = new("UPDATE Remotes SET ");
+                sb.Append("Name = @Name, ");
+                sb.Append("Description = @Description, ");
+                sb.Append("Tracks = @Tracks, ");
+                sb.Append("WHERE Id = @Id");
+                command.CommandText = sb.ToString();
+
+                foreach (Playlist playlist in playlists)
+                {
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@Name", playlist.Name);
+                    command.Parameters.AddWithValue("@Description", playlist.Description);
+                    command.Parameters.AddWithValue("@Tracks", playlist.GetTracksString());
+                    command.Parameters.AddWithValue("@Id", playlist.Id);
+
+                    updatedCount += await command.ExecuteNonQueryAsync();
+                }
+            }
+
+            return updatedCount;
+        }
+
         private async Task<(IEnumerable<Track> existingTracks, IEnumerable<Track> newTracks)> FilterExistingTracks(IEnumerable<Track> allTracks)
         {
             List<Track> existingTracks = new();
@@ -736,6 +895,16 @@ namespace LocalPlaylistMaster.Backend
             return remoteCount;
         }
 
+        public int GetPlaylistCount()
+        {
+            if (playlistCount >= 0) return playlistCount;
+
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM Playlists";
+            playlistCount = Convert.ToInt32(command.ExecuteScalar());
+            return playlistCount;
+        }
+
         private void InvalidateTrackCount()
         {
             trackCount = -1;
@@ -744,6 +913,11 @@ namespace LocalPlaylistMaster.Backend
         private void InvalidateRemoteCount()
         {
             remoteCount = -1;
+        }
+
+        private void InvalidatePlaylistCount()
+        {
+            playlistCount = -1;
         }
 
         public async Task<Dictionary<int, string>> GetRemoteNames(IEnumerable<int> remoteIDs)
@@ -761,5 +935,6 @@ namespace LocalPlaylistMaster.Backend
                 
             return remoteMap;
         }
+
     }
 }

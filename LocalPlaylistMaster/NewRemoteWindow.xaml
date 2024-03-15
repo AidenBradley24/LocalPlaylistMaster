@@ -1,4 +1,4 @@
-﻿<Window x:Class="LocalPlaylistMaster.AddRemoteWindow"
+﻿<Window x:Class="LocalPlaylistMaster.NewRemoteWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,7 +6,7 @@
         xmlns:localplaylistmaster="clr-namespace:LocalPlaylistMaster" d:DataContext="{d:DesignInstance Type=localplaylistmaster:RemoteModel}"
         xmlns:localplaylistmasterbackend="clr-namespace:LocalPlaylistMaster.Backend;assembly=LocalPlaylistMaster.Backend"
         mc:Ignorable="d"
-        Title="Add remote reference" Height="450" Width="420">
+        Title="Add Remote Reference" Height="450" Width="420">
     <DockPanel>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
             <Rectangle Height="10"/>

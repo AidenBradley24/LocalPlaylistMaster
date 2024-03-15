@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using static LocalPlaylistMaster.Backend.ProgressModel;
+﻿using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -11,7 +10,7 @@ namespace LocalPlaylistMaster.Backend
         private readonly DependencyProcessManager dependencyProcessManager;
         private readonly IProgress<(ReportType type, object report)> reporter;
 
-        public ConversionHandeler(IEnumerable<Track> tracks, Dictionary<string, FileInfo> fileMap, DirectoryInfo finalDir,
+        public ConversionHandeler(IEnumerable<(int id, string remoteId)> tracks, Dictionary<string, FileInfo> fileMap, DirectoryInfo finalDir,
             DependencyProcessManager dependencies, IProgress<(ReportType type, object report)> reporter)
         {
             this.reporter = reporter;
@@ -22,10 +21,10 @@ namespace LocalPlaylistMaster.Backend
             reporter.Report((ReportType.Progress, 0));
 
             argumentQueue = new();
-            foreach (Track track in tracks)
+            foreach ((int id, string remoteId) in tracks)
             {
-                string originalName = fileMap[track.RemoteId].FullName;
-                string newName = Path.Combine(finalDir.FullName, $"{track.Id}.{TARGET_FILE_EXTENSION}");
+                string originalName = fileMap[remoteId].FullName;
+                string newName = Path.Combine(finalDir.FullName, $"{id}.{TARGET_FILE_EXTENSION}");
                 argumentQueue.Enqueue($"-i \"{originalName}\" \"{newName}\" -y");
             }
         }

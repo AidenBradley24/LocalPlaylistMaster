@@ -65,7 +65,7 @@ namespace LocalPlaylistMaster.Backend {
         ///	Id INTEGER PRIMARY KEY,
         ///	Name TEXT,
         ///	Description TEXT,
-        ///	Tracks TEXT,
+        ///	Tracks TEXT
         ///);.
         /// </summary>
         internal static string create_playlists {
