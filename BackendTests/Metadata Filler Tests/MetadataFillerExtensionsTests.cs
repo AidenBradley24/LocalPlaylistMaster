@@ -1,4 +1,5 @@
 ﻿using LocalPlaylistMaster.Backend;
+using Xunit;
 
 namespace BackendTest.Metadata_Filler_Tests
 {
