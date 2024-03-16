@@ -690,17 +690,84 @@ namespace LocalPlaylistMaster
 
         public async void RemoveTrackSelectionFromDb()
         {
-            // TODO
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Track)) return;
+            if (HasPendingChanges()) return;
+
+            var result = MessageBox.Show("Are you sure that you want to remove selected tracks?\n" +
+                $"{string.Join('\n', propertyManager.GetCollection<Track>().Select(t => $"#{t.Id} -- `{t.Name}`"))}",
+                "Remove Tracks", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.Cancel) return;
+
+            await TrackedTask(async (reporter) =>
+            {
+                reporter.Report((ProgressModel.ReportType.TitleText, "Deleting tracks"));
+                int i = 0;
+                IEnumerable<Track> tracks = propertyManager.GetCollection<Track>();
+                foreach (Track track in tracks)
+                {
+                    reporter.Report((ProgressModel.ReportType.Progress, (int)((float)i++ / selectedCount * 100)));
+                    await manager.RemoveTrack(track.Id);
+                }
+            });
+
+            RefreshAll();
         }
 
         public async void RemoveRemoteSelectionFromDb()
         {
-            // TODO
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Remote)) return;
+            if (HasPendingChanges()) return;
+
+            var result = MessageBox.Show("Are you sure that you want to remove selected remotes?\n" +
+                $"{string.Join('\n', propertyManager.GetCollection<Remote>().Select(r => $"#{r.Id} -- `{r.Name}`"))}",
+                "Remove Remotes", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.Cancel) return;
+
+            result = MessageBox.Show("Do you also want to delete associated tracks? -- This can't be undone", "Remove Remotes", MessageBoxButton.YesNoCancel);
+            if (result == MessageBoxResult.Cancel) return;
+            bool alsoDeleteTracks = result == MessageBoxResult.Yes;
+
+            await TrackedTask(async (reporter) =>
+            {
+                reporter.Report((ProgressModel.ReportType.TitleText, "Deleting remotes"));
+                int i = 0;
+                IEnumerable<Remote> remotes = propertyManager.GetCollection<Remote>();
+                foreach (Remote remote in remotes)
+                {
+                    reporter.Report((ProgressModel.ReportType.Progress, (int)((float)i++ / selectedCount * 100)));
+                    await manager.RemoveRemote(remote.Id, alsoDeleteTracks);
+                }
+            });
+
+            RefreshAll();
         }
 
         public async void RemotePlaylistSelectionFromDb()
         {
-            // TODO
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Playlist)) return;
+            if (HasPendingChanges()) return;
+
+            var result = MessageBox.Show("Are you sure that you want to remove selected playlists?\n" +
+                $"{string.Join('\n', propertyManager.GetCollection<Playlist>().Select(p => $"#{p.Id} -- `{p.Name}`"))}",
+                "Remove Playlists", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.Cancel) return;
+
+            await TrackedTask(async (reporter) =>
+            {
+                reporter.Report((ProgressModel.ReportType.TitleText, "Deleting playlists"));
+                int i = 0;
+                IEnumerable<Playlist> playlists = propertyManager.GetCollection<Playlist>();
+                foreach (Playlist playlist in playlists)
+                {
+                    reporter.Report((ProgressModel.ReportType.Progress, (int)((float)i++ / selectedCount * 100)));
+                    await manager.RemovePlaylist(playlist.Id);
+                }
+            });
+
+            RefreshAll();
         }
 
         public async void FetchRemoteSelection()
@@ -740,9 +807,16 @@ namespace LocalPlaylistMaster
         public async void SyncRemoteSelection()
         {
             var manager = AssertDb();
-            if (!EditingRemote) return;
+            if (propertyManager?.MyType != typeof(Remote)) return;
             if (HasPendingChanges()) return;
-            // TODO
+
+            await TrackedTask(async (reporter) =>
+            {
+                foreach (var remote in propertyManager.GetCollection<Remote>())
+                {
+                    await manager.SyncRemote(remote.Id, reporter);
+                }
+            });
 
             RefreshAll();
         }

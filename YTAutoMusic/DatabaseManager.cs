@@ -152,7 +152,7 @@ namespace LocalPlaylistMaster.Backend
             try
             {
                 using SQLiteCommand command = db.CreateCommand();
-                command.CommandText = "INSERT INTO Playlist (Name, Description, Tracks) " +
+                command.CommandText = "INSERT INTO Playlists (Name, Description, Tracks) " +
                     "VALUES (@Name, @Description, @Tracks); " +
                     "SELECT LAST_INSERT_ROWID();";
 
@@ -197,6 +197,131 @@ namespace LocalPlaylistMaster.Backend
                 transaction.Rollback();
                 throw;
             }
+        }
+
+        public async Task RemoveTrack(int trackId)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                int remote;
+                TrackSettings settings;
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    command.CommandText = "SELECT Remote, Settings FROM Tracks WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Id", trackId);
+                    using var reader = await command.ExecuteReaderAsync();
+                    await reader.ReadAsync();
+                    remote = reader.GetInt32(0);
+                    settings = (TrackSettings)reader.GetInt32(1);       
+                }
+                
+                if(remote == NO_REMOTE)
+                {
+                    // if orphaned, then delete the record
+                    using SQLiteCommand command = db.CreateCommand();
+                    command.CommandText = "DELETE FROM Tracks WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Id", trackId);
+                    await command.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    // otherwise, mark it to be deleted when orphaned
+                    using SQLiteCommand command = db.CreateCommand();
+                    settings |= TrackSettings.removeMe;
+                    settings &= ~TrackSettings.downloaded;
+                    command.CommandText = "UPDATE Tracks SET Settings = @Settings WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Settings", (int)settings);
+                    command.Parameters.AddWithValue("@Id", trackId);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                var task = transaction.CommitAsync();
+                try
+                {
+                    FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{trackId}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    if (audioFile.Exists) audioFile.Delete();
+                }
+                catch
+                {
+                    Trace.TraceWarning("File couldn't be deleted");
+                }
+                await task;
+                InvalidateTrackCount();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task RemoveRemote(int remote, bool alsoDeleteTracks)
+        {
+            List<int> toOrphan = new();
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    command.CommandText = "SELECT Id FROM Tracks WHERE Remote = @Remote";
+                    command.Parameters.AddWithValue("@Remote", remote);
+                    using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        toOrphan.Add(reader.GetInt32(0));
+                    }
+                }
+
+                if (alsoDeleteTracks)
+                {
+                    using SQLiteCommand command = db.CreateCommand();
+                    command.CommandText = "DELETE FROM Tracks WHERE Remote = @Remote";
+                    command.Parameters.AddWithValue("@Remote", remote);
+                    Task task = command.ExecuteNonQueryAsync();
+                    foreach (int trackId in toOrphan)
+                    {
+                        try
+                        {
+                            FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{trackId}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                            if (audioFile.Exists) audioFile.Delete();
+                        }
+                        catch
+                        {
+                            Trace.TraceWarning("File couldn't be deleted");
+                        }
+                    }
+                    await task;
+                }
+                else
+                {
+                    await OrphanTracks(toOrphan);
+                }
+
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    command.CommandText = "DELETE FROM Remotes WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Id", remote);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+                InvalidateRemoteCount();
+                InvalidateTrackCount();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task RemovePlaylist(int playlist)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "DELETE FROM Playlists WHERE Id = @Id";
+            command.Parameters.AddWithValue("@Id", playlist);
+            await command.ExecuteNonQueryAsync();
         }
 
         /// <summary>
@@ -708,9 +833,38 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.AddRange(idParameters);
                 updatedTrackCount = await command.ExecuteNonQueryAsync();
             }
-
-            Trace.WriteLine($"Orphaned {updatedTrackCount} remotes with remote #{remote}");
+            Trace.WriteLine($"Orphaned {updatedTrackCount} tracks with remote #{remote}");
+            await OrphanCleanup();
             return updatedTrackCount;
+        }
+
+        private async Task<int> OrphanTracks(IEnumerable<int> trackIds)
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            var idPlaceholders = string.Join(",", trackIds.Select((_, index) => $"@Id{index}"));
+            var idParameters = trackIds.Select((id, index) => new SQLiteParameter($"@Id{index}", id)).ToArray();
+            command.CommandText = $"UPDATE Tracks SET Remote = @NewRemote WHERE Id IN ({idPlaceholders})";
+            command.Parameters.AddWithValue("@NewRemote", NO_REMOTE);
+            command.Parameters.AddRange(idParameters);
+            int changeCount = await command.ExecuteNonQueryAsync();
+            Trace.WriteLine($"Orphaned {changeCount} tracks");
+            await OrphanCleanup();
+            return changeCount;
+        }
+
+        /// <summary>
+        /// Delete orphaned tracks from database if they are marked to do so
+        /// </summary>
+        /// <returns>Number of deletions</returns>
+        private async Task<int> OrphanCleanup()
+        {
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = "DELETE FROM Tracks WHERE Remote = @NoRemote AND Settings & @RemoveMe = @RemoveMe";
+            command.Parameters.AddWithValue("@NoRemote", NO_REMOTE);
+            command.Parameters.AddWithValue("@RemoveMe", (int)TrackSettings.removeMe);
+            int changeCount = await command.ExecuteNonQueryAsync();
+            Trace.WriteLine($"Deleted {changeCount} tracks");
+            return changeCount;
         }
 
         /// <summary>
