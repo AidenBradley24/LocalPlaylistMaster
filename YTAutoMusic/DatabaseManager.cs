@@ -158,7 +158,7 @@ namespace LocalPlaylistMaster.Backend
 
                 command.Parameters.AddWithValue("@Name", playlist.Name);
                 command.Parameters.AddWithValue("@Description", playlist.Description);
-                command.Parameters.AddWithValue("@Tracks", playlist.GetTracksString());
+                command.Parameters.AddWithValue("@Tracks", playlist.Tracks);
                 object? id = await command.ExecuteScalarAsync();
                 await transaction.CommitAsync();
                 InvalidatePlaylistCount();
@@ -992,7 +992,7 @@ namespace LocalPlaylistMaster.Backend
                     command.Parameters.Clear();
                     command.Parameters.AddWithValue("@Name", playlist.Name);
                     command.Parameters.AddWithValue("@Description", playlist.Description);
-                    command.Parameters.AddWithValue("@Tracks", playlist.GetTracksString());
+                    command.Parameters.AddWithValue("@Tracks", playlist.Tracks);
                     command.Parameters.AddWithValue("@Id", playlist.Id);
 
                     updatedCount += await command.ExecuteNonQueryAsync();
@@ -1090,5 +1090,21 @@ namespace LocalPlaylistMaster.Backend
             return remoteMap;
         }
 
+        /// <summary>
+        /// Takes in a track <paramref name="query"/> and executes it.
+        /// Examples:
+        /// <code>
+        ///     1,2,3,4     
+        ///     1,5-8,remote=2
+        ///     remote=1&rating>3
+        /// </code>
+        /// </summary>
+        /// <exception cref="InvalidUserQueryException"
+        /// <param name="query">Query in custom format</param>
+        /// <returns>Relevant Tracks</returns>
+        public async Task<IEnumerable<Track>> ParseTrackQuery(UserQuery query)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

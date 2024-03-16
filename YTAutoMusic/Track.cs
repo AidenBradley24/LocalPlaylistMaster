@@ -1,8 +1,9 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace LocalPlaylistMaster.Backend
 {
-    public partial record Track
+    public partial record Track : IEqualityComparer<Track>, IComparable<Track>
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -109,6 +110,21 @@ namespace LocalPlaylistMaster.Backend
 
         [GeneratedRegex("\\s+")]
         private static partial Regex WhiteSpace();
+
+        public bool Equals(Track? x, Track? y)
+        {
+            return x?.Id == y?.Id;
+        }
+
+        public int GetHashCode([DisallowNull] Track obj)
+        {
+            return obj.Id.GetHashCode();
+        }
+
+        public int CompareTo(Track? other)
+        {
+            return Id.CompareTo(other?.Id);
+        }
     }
 
     [Flags]

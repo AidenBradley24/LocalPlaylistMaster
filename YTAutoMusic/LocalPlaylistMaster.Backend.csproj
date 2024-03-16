@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <TargetFramework>net7.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -26,9 +26,6 @@
     <ItemGroup>
         <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
         <PackageReference Include="TagLibSharp" Version="2.3.0" />
-    </ItemGroup>
-    <ItemGroup>
-      <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
     </ItemGroup>
     <ItemGroup>
       <Compile Update="SQL_Resources.Designer.cs">
