@@ -75,7 +75,7 @@ namespace LocalPlaylistMaster.Backend
             "description",
         };
 
-        private enum ParseMode { quer, int_val, str_val, int_oper, str_oper, id, between_start, between_end }
+        private enum ParseMode { quer, int_val, str_val, int_oper, str_oper, id, between_start, between_end, end }
 
         public void Parse(string query) // TODO add parenthesis
         {
@@ -97,7 +97,21 @@ namespace LocalPlaylistMaster.Backend
                     if (char.IsWhiteSpace(c)) continue;
                     char? n = i < section.Length - 1 ? section[i + 1] : null;
 
-                    if(mode == ParseMode.str_val)
+                    if (mode == ParseMode.end)
+                    {
+                        if(c == '&')
+                        {
+                            tokens.Add("&");
+                            mode = ParseMode.quer;
+                            continue;
+                        }
+                        else
+                        {
+                            throw new InvalidUserQueryException($"query invalid at char #{i}, in section {finalSections.Count + 1} `{c}`");
+                        }
+                    }
+
+                    if (mode == ParseMode.str_val)
                     {
                         // self contained until exit string with quotes
                         if(c != '"') throw new InvalidUserQueryException("strings must begin and end with quotes");
@@ -127,7 +141,7 @@ namespace LocalPlaylistMaster.Backend
                             b.Append(c);
                         }
                         tokens.Add(b.ToString());
-                        mode = ParseMode.quer;
+                        mode = ParseMode.end;
                         continue;
                     }
 
@@ -136,10 +150,24 @@ namespace LocalPlaylistMaster.Backend
                         // self contained until no longer digit
                         int start = i;
                         if (c == '-') i++; // negative number
-                        while (i < section.Length && char.IsDigit(c)) c = section[i++];
+
+                        while (i < section.Length)
+                        {
+                            c = section[i];
+                            if(!char.IsDigit(c))
+                            {
+                                break;
+                            }
+                            i++;
+                        }
                         if (start == i) throw new InvalidUserQueryException("expected number was not provided");
-                        tokens.Add(int.Parse(section[start..i]));
-                        mode = ParseMode.quer;
+                        if (!int.TryParse(section[start..i], out int result))
+                        {
+                            throw new InvalidUserQueryException($"`{section[start..i]}` is not an integer");
+                        }
+                        tokens.Add(result);
+                        mode = ParseMode.end;
+                        i--;
                         continue;
                     }
 
@@ -173,6 +201,11 @@ namespace LocalPlaylistMaster.Backend
 
                     void StartOperator()
                     {
+                        if (string.IsNullOrWhiteSpace(current))
+                        {
+                            throw new InvalidUserQueryException("no parameter was provided before operator");
+                        }
+
                         if (intQueries.Contains(current))
                         {
                             mode = ParseMode.int_oper;
@@ -262,7 +295,11 @@ namespace LocalPlaylistMaster.Backend
                             tokens.Add(":");
                             continue;
                         case '-':
-                            tokens.Add(current);
+                            if (!int.TryParse(current, out int result))
+                            {
+                                throw new InvalidUserQueryException("value preceding `-` operator is not an integer");
+                            }
+                            tokens.Add(result);
                             current = "";
                             if (mode != ParseMode.between_start)
                             {
@@ -271,14 +308,6 @@ namespace LocalPlaylistMaster.Backend
                             mode = ParseMode.between_end;
                             continue;
                         case '&':
-                            tokens.Add(current);
-                            current = "";
-                            if(mode == ParseMode.int_val || mode == ParseMode.str_val || mode == ParseMode.between_end)
-                            {
-                                tokens.Add("&");
-                                mode = ParseMode.quer;
-                                continue;
-                            }
                             throw new InvalidUserQueryException("`&` operator is not used correctly");
                         default:
                             current += c;
@@ -294,6 +323,14 @@ namespace LocalPlaylistMaster.Backend
                 else if (mode == ParseMode.between_start)
                 {
                     throw new InvalidUserQueryException("Incomplete range using `:` operator");
+                }
+                else if (mode == ParseMode.between_end)
+                {
+                    if (!int.TryParse(current, out int result))
+                    {
+                        throw new InvalidUserQueryException("value after `-` operator is not an integer");
+                    }
+                    tokens.Add(result);
                 }
                 else if (!string.IsNullOrWhiteSpace(current))
                 {
@@ -320,9 +357,14 @@ namespace LocalPlaylistMaster.Backend
             {
                 object current = tokens[i];
                 object? next = i < tokens.Count - 1 ? tokens[i + 1] : null;
-                
+
                 if(mode == ParseMode.quer)
                 {
+                    if (current is string s && s == "&")
+                    {
+                        b.Append(" AND ");
+                        continue;
+                    }
                     if (intQueries.Contains(current))
                     {
                         mode = ParseMode.int_oper;
@@ -442,8 +484,9 @@ namespace LocalPlaylistMaster.Backend
                             b.Append(WrapParam(next, true));
                             if (param == null) throw new Exception();
                             param.Value = $"%{param.Value}%";
-                            b.Append(" ESCAPE '\\')");
+                            b.Append(" ESCAPE '\\'");
                             b.Append(caseInsensitive);
+                            b.Append(')');
                             break;
                         case "<":
                         case ">":
@@ -455,10 +498,6 @@ namespace LocalPlaylistMaster.Backend
                             break;
                         case ":":
                             mode = ParseMode.between_start;
-                            continue;
-                        case "&":
-                            mode = ParseMode.quer;
-                            b.Append(" AND ");
                             continue;
                     }
 

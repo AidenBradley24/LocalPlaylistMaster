@@ -33,7 +33,11 @@ namespace BackendTest
         private void Fail(string TEST)
         {
             var query = new UserQuery();
-            var ex = Assert.Throws<InvalidUserQueryException>(() => query.Parse(TEST));
+            var ex = Assert.Throws<InvalidUserQueryException>(() => 
+            {
+                query.Parse(TEST);
+                output.WriteLine(query.GetSQL());
+            });
             output.WriteLine(ex.Message);
         }
 
@@ -128,6 +132,61 @@ namespace BackendTest
         }
 
         [Fact]
+        public void Test11()
+        {
+            const string TEST = "album$\"ost\", name$\"soundtrack\"";
+            const string RESULT = "Album LIKE @p0 ESCAPE '\\' COLLATE NOCASE OR Name LIKE @p1 ESCAPE '\\' COLLATE NOCASE";
+            object[] PARAMS = ["%ost", "%soundtrack"];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+        [Fact]
+        public void Test12()
+        {
+            const string TEST = "album$\"Soundtrack\"&name*\"theme\"";
+            const string RESULT = "Album LIKE @p0 ESCAPE '\\' COLLATE NOCASE AND Name LIKE @p1 ESCAPE '\\' COLLATE NOCASE";
+            object[] PARAMS = ["%Soundtrack", "%theme%"];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+        [Fact]
+        public void Test13()
+        {
+            const string TEST = "id<10&remote=-1, 12";
+            const string RESULT = "Id < @p0 AND Remote = @p1 OR Id = @p2";
+            object[] PARAMS = [10, -1, 12];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+        [Fact]
+        public void Test14()
+        {
+            const string TEST = "name=\"test\"&remote=-1, 12";
+            const string RESULT = "Name = @p0 COLLATE NOCASE AND Remote = @p1 OR Id = @p2";
+            object[] PARAMS = ["test", -1, 12];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+
+        [Fact]
+        public void Test15()
+        {
+            const string TEST = "name!=\"\\\"%\"";
+            const string RESULT = "(NOT Name = @p0 COLLATE NOCASE)";
+            object[] PARAMS = ["\"%"];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+        [Fact]
+        public void Test16()
+        {
+            const string TEST = "name!*\"\\\"%-\"";
+            const string RESULT = "(NOT Name LIKE @p0 ESCAPE '\\' COLLATE NOCASE)";
+            object[] PARAMS = ["%\"\\%\\-%"];
+            Test(TEST, RESULT, PARAMS);
+        }
+
+        [Fact]
         public void Fail01()
         {
             const string TEST = "dsfjgoif";
@@ -173,6 +232,27 @@ namespace BackendTest
         public void Fail07()
         {
             const string TEST = "name>10";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail08()
+        {
+            const string TEST = "id>1s50";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail09()
+        {
+            const string TEST = ">";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail10()
+        {
+            const string TEST = "=10";
             Fail(TEST);
         }
     }
