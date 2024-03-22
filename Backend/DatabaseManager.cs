@@ -1091,20 +1091,39 @@ namespace LocalPlaylistMaster.Backend
         }
 
         /// <summary>
-        /// Takes in a track <paramref name="query"/> and executes it.
-        /// Examples:
-        /// <code>
-        ///     1,2,3,4     
-        ///     1,5-8,remote=2
-        ///     remote=1&rating>3
-        /// </code>
+        /// Takes in a <seealso cref="UserQuery"/> and executes it.
         /// </summary>
-        /// <exception cref="InvalidUserQueryException"
         /// <param name="query">Query in custom format</param>
         /// <returns>Relevant Tracks</returns>
-        public async Task<IEnumerable<Track>> ParseTrackQuery(UserQuery query)
+        public async Task<IEnumerable<Track>> ExecuteUserQuery(UserQuery query, int limit, int offset)
         {
-            throw new NotImplementedException();
+            if(string.IsNullOrWhiteSpace(query.Sql)) return await GetTracks(limit, offset);
+            using SQLiteCommand command = db.CreateCommand();
+            command.CommandText = $"SELECT * FROM Tracks WHERE {query.Sql} LIMIT @Limit OFFSET @Offset";
+            command.Parameters.AddWithValue("@Limit", limit);
+            command.Parameters.AddWithValue("@Offset", offset);
+            command.Parameters.AddRange(query.Parameters);
+
+            using var reader = await command.ExecuteReaderAsync();
+            List<Track> tracks = new();
+
+            while (await reader.ReadAsync())
+            {
+                Track track = new(
+                    reader.GetInt32("Id"),
+                    reader.GetString("Name"),
+                    reader.GetInt32("Remote"),
+                    reader.GetString("RemoteId"),
+                    reader.GetString("Artists"),
+                    reader.GetString("Album"),
+                    reader.GetString("Description"),
+                    reader.GetInt32("Rating"),
+                    reader.GetInt32("TimeInSeconds"),
+                    (TrackSettings)reader.GetInt32("Settings"));
+                tracks.Add(track);
+            }
+
+            return tracks;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data.SQLite;
+﻿using System.Data.SQLite;
 using System.Text;
 
 namespace LocalPlaylistMaster.Backend
@@ -44,44 +43,27 @@ namespace LocalPlaylistMaster.Backend
     /// </summary>
     public sealed class UserQuery
     {
-        private string? sql;
-        private string? queryText;
-        private bool valid = false;
-        private IEnumerable<SQLiteParameter>? parameters;
+        public string Query { get; }
+        public string Sql { get; }
+        public SQLiteParameter[] Parameters { get; }
 
-        public string? GetSQL()
+        /// <summary>
+        /// Parses user queries using a custom syntax.
+        /// </summary>
+        /// <exception cref="InvalidUserQueryException"/>
+        /// <param name="query"></param>
+        public UserQuery(string query)
         {
-            return sql;
+            var (sql, ps) = ParseQuery(query);
+            Sql = sql;
+            Parameters = ps.ToArray();
+            Query = query;
         }
 
-        public IEnumerable<SQLiteParameter>? Parameters()
+        private static (string, List<SQLiteParameter>) ParseQuery(string query)
         {
-            return parameters;
-        }
-
-        private static readonly HashSet<string> intQueries = new()
-        {
-            "id",
-            "remote",
-            "rating",
-            "time"
-        };
-
-        private static readonly HashSet<string> stringQueries = new()
-        {
-            "name",
-            "artists",
-            "album",
-            "description",
-        };
-
-        private enum ParseMode { quer, int_val, str_val, int_oper, str_oper, id, between_start, between_end, end }
-
-        public void Parse(string query) // TODO add parenthesis
-        {
-            valid = false;
-            queryText = query.ToLowerInvariant();
-            IEnumerable<string> sections = SmartSplit(query); // TODO also make sure commas can be in strings
+            if (string.IsNullOrEmpty(query)) return ("", []);
+            IEnumerable<string> sections = SmartSplit(query);
             List<SQLiteParameter> parameters = [];
             List<string> finalSections = [];
 
@@ -99,7 +81,7 @@ namespace LocalPlaylistMaster.Backend
 
                     if (mode == ParseMode.end)
                     {
-                        if(c == '&')
+                        if (c == '&')
                         {
                             tokens.Add("&");
                             mode = ParseMode.quer;
@@ -114,9 +96,9 @@ namespace LocalPlaylistMaster.Backend
                     if (mode == ParseMode.str_val)
                     {
                         // self contained until exit string with quotes
-                        if(c != '"') throw new InvalidUserQueryException("strings must begin and end with quotes");
+                        if (c != '"') throw new InvalidUserQueryException("strings must begin and end with quotes");
                         StringBuilder b = new();
-                        while(i < section.Length)
+                        while (i < section.Length)
                         {
                             c = section[++i];
                             if (c == '"') break;
@@ -145,7 +127,7 @@ namespace LocalPlaylistMaster.Backend
                         continue;
                     }
 
-                    if(mode == ParseMode.int_val)
+                    if (mode == ParseMode.int_val)
                     {
                         // self contained until no longer digit
                         int start = i;
@@ -154,7 +136,7 @@ namespace LocalPlaylistMaster.Backend
                         while (i < section.Length)
                         {
                             c = section[i];
-                            if(!char.IsDigit(c))
+                            if (!char.IsDigit(c))
                             {
                                 break;
                             }
@@ -185,7 +167,7 @@ namespace LocalPlaylistMaster.Backend
                         {
                             current += c;
                         }
-                        else if(c == '-')
+                        else if (c == '-')
                         {
                             tokens.Add(":");
                             tokens.Add(current);
@@ -228,8 +210,8 @@ namespace LocalPlaylistMaster.Backend
                         case '=':
                             StartOperator();
                             tokens.Add("=");
-                            mode = mode switch 
-                            { 
+                            mode = mode switch
+                            {
                                 ParseMode.int_oper => ParseMode.int_val,
                                 ParseMode.str_oper => ParseMode.str_val,
                                 _ => throw new Exception()
@@ -257,7 +239,7 @@ namespace LocalPlaylistMaster.Backend
                                     _ => throw new Exception()
                                 };
                             }
-                            else if(n == '^' || n == '$' || n == '*')
+                            else if (n == '^' || n == '$' || n == '*')
                             {
                                 if (mode != ParseMode.str_oper)
                                     throw new InvalidUserQueryException($"`!{n}` operator is string-only");
@@ -273,12 +255,12 @@ namespace LocalPlaylistMaster.Backend
                         case '>':
                             StartOperator();
                             string add = c.ToString();
-                            if (n == '=') 
+                            if (n == '=')
                             {
                                 add += "=";
                                 i++;
-                            } 
-                            if(mode != ParseMode.int_oper)
+                            }
+                            if (mode != ParseMode.int_oper)
                             {
                                 throw new InvalidUserQueryException($"`{add}` operator is int-only");
                             }
@@ -315,7 +297,7 @@ namespace LocalPlaylistMaster.Backend
                     }
                 }
 
-                if(mode == ParseMode.id)
+                if (mode == ParseMode.id)
                 {
                     tokens.Add("=");
                     tokens.Add(current);
@@ -340,10 +322,8 @@ namespace LocalPlaylistMaster.Backend
                 finalSections.Add(ParseTokens(tokens, parameters));
             }
 
-            sql = string.Join(" OR ", finalSections);
-            this.parameters = parameters;
+            return (string.Join(" OR ", finalSections), parameters);
         }
-
 
         private static string ParseTokens(List<object> tokens, List<SQLiteParameter> parameters)
         {
@@ -577,10 +557,25 @@ namespace LocalPlaylistMaster.Backend
             splits.Add(original[splitStart..i].Trim());
             return splits;
         }
+
+        private enum ParseMode { quer, int_val, str_val, int_oper, str_oper, id, between_start, between_end, end }
+
+        private static readonly HashSet<string> intQueries =
+        [
+            "id",
+            "remote",
+            "rating",
+            "time"
+        ];
+
+        private static readonly HashSet<string> stringQueries =
+        [
+            "name",
+            "artists",
+            "album",
+            "description",
+        ];
     }
 
-    public class InvalidUserQueryException : Exception
-    {
-        public InvalidUserQueryException(string message) : base(message) { }
-    }
+    public class InvalidUserQueryException(string message) : Exception(message) {}
 }

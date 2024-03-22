@@ -14,29 +14,21 @@ namespace BackendTest
 
         private void Test(string TEST, string RESULT, object[] PARAMS)
         {
-            var query = new UserQuery();
-            query.Parse(TEST);
-            Assert.Equal(RESULT, query.GetSQL());
-
-            var outParams = query.Parameters();
-            var parmEnumerator = outParams.GetEnumerator();
+            var query = new UserQuery(TEST);
+            Assert.Equal(RESULT, query.Sql);
 
             for (int i = 0; i < PARAMS.Length; i++)
             {
-                parmEnumerator.MoveNext();
-                var outParam = parmEnumerator.Current;
-                object param = PARAMS[i];
-                Assert.Equal(param, outParam.Value);
+                Assert.Equal(PARAMS[i], query.Parameters[i].Value);
             }
         }
 
         private void Fail(string TEST)
         {
-            var query = new UserQuery();
             var ex = Assert.Throws<InvalidUserQueryException>(() => 
             {
-                query.Parse(TEST);
-                output.WriteLine(query.GetSQL());
+                var query = new UserQuery(TEST);
+                output.WriteLine(query.Sql);
             });
             output.WriteLine(ex.Message);
         }
