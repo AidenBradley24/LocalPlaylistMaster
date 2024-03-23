@@ -247,5 +247,47 @@ namespace BackendTest
             const string TEST = "=10";
             Fail(TEST);
         }
+
+        [Fact]
+        public void Fail11()
+        {
+            const string TEST = "id=";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail12()
+        {
+            const string TEST = "name=";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail13()
+        {
+            const string TEST = "id<";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail14()
+        {
+            const string TEST = "id:";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail15()
+        {
+            const string TEST = "name";
+            Fail(TEST);
+        }
+
+        [Fact]
+        public void Fail16()
+        {
+            const string TEST = "id";
+            Fail(TEST);
+        }
     }
 }

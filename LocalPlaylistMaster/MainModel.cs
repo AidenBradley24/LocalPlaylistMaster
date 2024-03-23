@@ -28,8 +28,10 @@ namespace LocalPlaylistMaster
         public Dictionary<int, string> RemoteReference
         {
             get => ((IntStringMapConverter)Host.Resources["RemoteMap"]).ValueMap;
-            set => ((IntStringMapConverter) Host.Resources["RemoteMap"]).ValueMap = value;
+            set => ((IntStringMapConverter)Host.Resources["RemoteMap"]).ValueMap = value;
         }
+
+        private UserQuery trackUserQuery;
 
         private ObservableCollection<Track> tracks;
         public ObservableCollection<Track> Tracks
@@ -226,12 +228,17 @@ namespace LocalPlaylistMaster
         public ICommand SyncNewCommand { get; }
         public ICommand DownloadSelectedTracksCommand { get; }
 
+        public ICommand EditFilterCommand { get; }
+        public ICommand ClearFilterCommand { get; }
+
         public MainModel(MainWindow host)
         {
             Host = host;
             tracks = [];
             remotes = [];
             playlists = [];
+
+            trackUserQuery = new UserQuery("");
 
             NewRemoteCommand = new RelayCommand(AddRemote, HasDb);
             NewPlaylistCommand = new RelayCommand(AddPlaylist, HasDb);
@@ -257,6 +264,9 @@ namespace LocalPlaylistMaster
             SyncNewCommand = new RelayCommand(SyncNew, HasDb);
             DownloadSelectedTracksCommand = new RelayCommand(DownloadSelectedTracks,
                 () => manager != null && EditingTrack);
+
+            EditFilterCommand = new RelayCommand(EditFilter, HasDb);
+            ClearFilterCommand = new RelayCommand(ClearFilter, HasDb);
         }
 
         private bool HasDb() => manager != null;
@@ -276,7 +286,7 @@ namespace LocalPlaylistMaster
                 return;
             }
 
-            var task = Manager.GetTracks(VIEW_SIZE, currentTrackOffset);
+            var task = Manager.ExecuteUserQuery(trackUserQuery, VIEW_SIZE, currentTrackOffset);
             task.Wait(); // TODO add loading bar
             Tracks = new ObservableCollection<Track>(task.Result);
 
@@ -821,5 +831,26 @@ namespace LocalPlaylistMaster
             RefreshAll();
         }
         #endregion
+
+        public void EditFilter()
+        {
+            AssertDb();
+            if (HasPendingChanges()) return;
+
+            UserQueryWindow window = new(trackUserQuery);
+            bool? result = window.ShowDialog();
+            if (result != true) return;
+            trackUserQuery = window.Result ?? new UserQuery("");
+            RefreshTracks();
+        }
+
+        public void ClearFilter()
+        {
+            AssertDb();
+            if (HasPendingChanges()) return;
+
+            trackUserQuery = new UserQuery("");
+            RefreshTracks();
+        }
     }
 }

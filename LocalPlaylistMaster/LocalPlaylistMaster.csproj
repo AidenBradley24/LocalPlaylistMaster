@@ -32,6 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="UserQueryWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="NewRemoteWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

@@ -176,7 +176,7 @@ namespace LocalPlaylistMaster.Backend
                         }
                         else
                         {
-                            throw new InvalidUserQueryException("Only digits and `-` are allowed with implicit ids");
+                            throw new InvalidUserQueryException("only digits and `-` are allowed with implicit ids");
                         }
                         continue;
                     }
@@ -304,7 +304,7 @@ namespace LocalPlaylistMaster.Backend
                 }
                 else if (mode == ParseMode.between_start)
                 {
-                    throw new InvalidUserQueryException("Incomplete range using `:` operator");
+                    throw new InvalidUserQueryException("incomplete range using `:` operator");
                 }
                 else if (mode == ParseMode.between_end)
                 {
@@ -313,6 +313,14 @@ namespace LocalPlaylistMaster.Backend
                         throw new InvalidUserQueryException("value after `-` operator is not an integer");
                     }
                     tokens.Add(result);
+                }
+                else if (mode == ParseMode.int_val || mode == ParseMode.str_val)
+                {
+                    throw new InvalidUserQueryException("value was expected but not provided");
+                }
+                else if (mode == ParseMode.quer)
+                {
+                    throw new InvalidUserQueryException("no operator was provided");
                 }
                 else if (!string.IsNullOrWhiteSpace(current))
                 {

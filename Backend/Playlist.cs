@@ -16,6 +16,7 @@ namespace LocalPlaylistMaster.Backend
             Id = UNINITIALIZED;
             Name = "";
             Description = "";
+            Tracks = "";
         }
 
         public Playlist(int id, string name, string description, string tracks)

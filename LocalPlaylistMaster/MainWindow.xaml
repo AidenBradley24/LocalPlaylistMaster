@@ -46,6 +46,11 @@
                     <MenuItem Header="Sync New" Command="{Binding SyncNewCommand}"/>
                 </MenuItem>
                 <MenuItem Header="Export"></MenuItem>
+                <MenuItem Header="Track Filter">
+                    <MenuItem.Background>lightblue</MenuItem.Background>
+                    <MenuItem Header="Edit Filter" Command="{Binding EditFilterCommand}"/>
+                    <MenuItem Header="Clear Filter" Command="{Binding ClearFilterCommand}"/>
+                </MenuItem>
                 <MenuItem Header="Track Selection" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <MenuItem.Background>lightgray</MenuItem.Background>
                     <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"/>
