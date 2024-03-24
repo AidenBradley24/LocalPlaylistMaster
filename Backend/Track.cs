@@ -125,6 +125,11 @@ namespace LocalPlaylistMaster.Backend
         {
             return Id.CompareTo(other?.Id);
         }
+
+        public override string ToString()
+        {
+            return $"#{Id} -- {Name}";
+        }
     }
 
     [Flags]

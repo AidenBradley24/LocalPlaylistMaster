@@ -980,10 +980,10 @@ namespace LocalPlaylistMaster.Backend
 
             using (SQLiteCommand command = db.CreateCommand())
             {
-                StringBuilder sb = new("UPDATE Remotes SET ");
+                StringBuilder sb = new("UPDATE Playlists SET ");
                 sb.Append("Name = @Name, ");
                 sb.Append("Description = @Description, ");
-                sb.Append("Tracks = @Tracks, ");
+                sb.Append("Tracks = @Tracks ");
                 sb.Append("WHERE Id = @Id");
                 command.CommandText = sb.ToString();
 
@@ -1124,6 +1124,13 @@ namespace LocalPlaylistMaster.Backend
             }
 
             return tracks;
+        }
+
+        public async Task<PlaylistExportManager> CreatePlaylistExport(Playlist playlist)
+        {
+            UserQuery query = new(playlist.Tracks);
+            var allTracks = await ExecuteUserQuery(query, PlaylistExportManager.MAX_PLAYLIST_SIZE, 0);
+            return new PlaylistExportManager(playlist, allTracks, audioDir);
         }
     }
 }

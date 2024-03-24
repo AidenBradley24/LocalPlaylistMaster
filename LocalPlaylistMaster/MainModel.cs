@@ -116,6 +116,7 @@ namespace LocalPlaylistMaster
             OnPropertyChanged(nameof(EditingTrack));
             OnPropertyChanged(nameof(EditingRemote));
             OnPropertyChanged(nameof(EditingPlaylist));
+            OnPropertyChanged(nameof(EditingTrackOrRemote));
         }
 
         public bool EditingTrack
@@ -136,6 +137,11 @@ namespace LocalPlaylistMaster
                 currentEdit = EditType.Remote;
                 OnEditTypeChanged();
             }
+        }
+
+        public bool EditingTrackOrRemote
+        {
+            get => EditingTrack || EditingRemote;
         }
 
         public bool EditingPlaylist
@@ -208,6 +214,16 @@ namespace LocalPlaylistMaster
             }
         }
 
+        public string EditPlaylistTrackFilter
+        {
+            get => (string?)(propertyManager?.GetValue(nameof(EditPlaylistTrackFilter))) ?? "...";
+            set
+            {
+                propertyManager?.SetValue(nameof(EditPlaylistTrackFilter), value);
+                OnPropertyChanged(nameof(EditPlaylistTrackFilter));
+            }
+        }
+
         #endregion
 
         public ICommand NewRemoteCommand { get; }
@@ -231,6 +247,8 @@ namespace LocalPlaylistMaster
         public ICommand EditFilterCommand { get; }
         public ICommand ClearFilterCommand { get; }
 
+        public ICommand ExportSelectedPlaylistCommand { get; }
+
         public MainModel(MainWindow host)
         {
             Host = host;
@@ -247,7 +265,7 @@ namespace LocalPlaylistMaster
                 () => manager != null && EditingTrack);
             RemoveRemoteSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
                 () => manager != null && EditingRemote);
-            RemovePlaylistSelectionFromDbCommand = new RelayCommand(RemoveRemoteSelectionFromDb,
+            RemovePlaylistSelectionFromDbCommand = new RelayCommand(RemotePlaylistSelectionFromDb,
                 () => manager != null && EditingPlaylist);
 
             FetchRemoteSelectionCommand = new RelayCommand(FetchRemoteSelection,
@@ -267,6 +285,9 @@ namespace LocalPlaylistMaster
 
             EditFilterCommand = new RelayCommand(EditFilter, HasDb);
             ClearFilterCommand = new RelayCommand(ClearFilter, HasDb);
+
+            ExportSelectedPlaylistCommand = new RelayCommand(ExportSelectedPlaylist,
+                () => manager != null && EditingPlaylist);
         }
 
         private bool HasDb() => manager != null;
@@ -327,7 +348,7 @@ namespace LocalPlaylistMaster
             task.Wait(); // TODO add loading bar
 
             Playlists = new ObservableCollection<Playlist>(task.Result);
-            Host.playlistGrid.SelectedItems.Clear();
+            Host.playlistGrid.SelectedItem = null;
             OnPropertyChanged(nameof(Playlists));
         }
 
@@ -411,7 +432,7 @@ namespace LocalPlaylistMaster
                 var result = MessageBox.Show("There are pending changes. Do you want to disgard?", "Confirm", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.No)
                 {
-                    ClearSelection();
+                    //ClearSelection();
                     return;
                 }
             }
@@ -499,8 +520,8 @@ namespace LocalPlaylistMaster
             IsItemSelected = true;
             EditingPlaylist = true;
 
-            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription)];
-            string[] ACTUAL_NAMES = [nameof(Playlist.Name), nameof(Playlist.Description)];
+            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditPlaylistTrackFilter)];
+            string[] ACTUAL_NAMES = [nameof(Playlist.Name), nameof(Playlist.Description), nameof(Playlist.Tracks)];
 
             propertyManager = new(typeof(Playlist), playlistSelection, EDIT_NAMES, ACTUAL_NAMES);
             foreach (string edit in EDIT_NAMES)
@@ -515,9 +536,13 @@ namespace LocalPlaylistMaster
             {
                 DisplayTracksEdit(propertyManager.GetCollection<Track>());
             }
-            else
+            else if(propertyManager?.MyType == typeof(Remote))
             {
-                propertyManager = null;
+                DisplayRemotesEdit(propertyManager.GetCollection<Remote>());
+            }
+            else if(propertyManager?.MyType == typeof(Playlist))
+            {
+                DisplayPlaylistsEdit(propertyManager.GetCollection<Playlist>());
             }
         }
 
@@ -830,7 +855,6 @@ namespace LocalPlaylistMaster
 
             RefreshAll();
         }
-        #endregion
 
         public void EditFilter()
         {
@@ -852,5 +876,37 @@ namespace LocalPlaylistMaster
             trackUserQuery = new UserQuery("");
             RefreshTracks();
         }
+
+        public void EditPlaylistTracks()
+        {
+            AssertDb();
+            UserQuery query;
+
+            try
+            {
+                query = new(EditPlaylistTrackFilter);
+            }
+            catch
+            {
+                MessageBox.Show("Error loading existing query.", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            UserQueryWindow window = new(query);
+            bool? result = window.ShowDialog();
+            if (result != true) return;
+            EditPlaylistTrackFilter = window.Result?.Query ?? "";
+        }
+
+        public void ExportSelectedPlaylist()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Playlist)) return;
+            if (HasPendingChanges()) return;
+
+            ExportPlaylistWindow window = new(propertyManager.GetCollection<Playlist>().First(), manager);
+            window.ShowDialog();
+        }
+        #endregion
     }
 }

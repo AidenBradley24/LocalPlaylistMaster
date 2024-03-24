@@ -6,6 +6,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Linq;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace LocalPlaylistMaster
 {
@@ -158,6 +160,23 @@ namespace LocalPlaylistMaster
         private void TabControl_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             tabChanging = true;
+        }
+
+        private void EditTrackQuery_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Model.EditPlaylistTracks();
+        }
+
+        private void TextBlockHoverHighlight_MouseEnter(object sender, MouseEventArgs e)
+        {
+            // Change the border brush color when the mouse enters the text block
+            ((Border)((TextBlock)sender).Parent).BorderBrush = Brushes.Black;
+        }
+
+        private void TextBlockHoverHighlight_MouseLeave(object sender, MouseEventArgs e)
+        {
+            // Change the border brush color back when the mouse leaves the text block
+            ((Border)((TextBlock)sender).Parent).BorderBrush = Brushes.Gray;
         }
     }
 }

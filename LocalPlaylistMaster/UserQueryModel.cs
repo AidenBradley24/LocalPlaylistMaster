@@ -47,24 +47,16 @@ namespace LocalPlaylistMaster
 
         public UserQueryModel(UserQuery existingQuery)
         {
-            query = existingQuery.Query;
-            message = "";
-            messageColor = "";
-
-            OnPropertyChanged(nameof(Query));
-            OnPropertyChanged(nameof(Message));
-            OnPropertyChanged(nameof(MessageColor));
+            Message = "Select all tracks from the database";
+            MessageColor = "Green";
+            Query = existingQuery.Query;
         }
 
         public UserQueryModel()
         {
-            query = "";
-            message = "";
-            messageColor = "";
-
-            OnPropertyChanged(nameof(Query));
-            OnPropertyChanged(nameof(Message));
-            OnPropertyChanged(nameof(MessageColor));
+            Message = "Select all tracks from the database";
+            MessageColor = "Green";
+            Query = "";
         }
 
         public UserQuery? Export()
@@ -98,8 +90,16 @@ namespace LocalPlaylistMaster
             else
             {
                 textBox.ClearValue(Border.BorderBrushProperty);
-                MessageColor = "Black";
-                Message = "";
+                MessageColor = "Green";
+
+                if (string.IsNullOrWhiteSpace(userQuery?.Query))
+                {
+                    Message = "Select all tracks from the database";
+                }
+                else
+                {
+                    Message = "Query good!";
+                }
             }
 
             OnPropertyChanged(nameof(IsValid));

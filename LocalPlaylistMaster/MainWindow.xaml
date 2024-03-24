@@ -45,7 +45,6 @@
                     <MenuItem Header="Download All" Command="{Binding DownloadAllCommand}"/>
                     <MenuItem Header="Sync New" Command="{Binding SyncNewCommand}"/>
                 </MenuItem>
-                <MenuItem Header="Export"></MenuItem>
                 <MenuItem Header="Track Filter">
                     <MenuItem.Background>lightblue</MenuItem.Background>
                     <MenuItem Header="Edit Filter" Command="{Binding EditFilterCommand}"/>
@@ -69,6 +68,8 @@
                     <MenuItem.Background>lightgray</MenuItem.Background>
                     <MenuItem Header="Add" Command="{Binding NewPlaylistCommand}"/>
                     <MenuItem Header="Remove" Command="{Binding RemovePlaylistSelectionFromDbCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Export" Command="{Binding ExportSelectedPlaylistCommand}"/>
                 </MenuItem>
             </Menu>
             <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray">
@@ -155,11 +156,13 @@
                                     <DataGrid x:Name ="playlistGrid" ItemsSource="{Binding Playlists}" CanUserReorderColumns="False" 
                                               AutoGenerateColumns="False" IsReadOnly="True"
                                               SelectionChanged="PlaylistGrid_SelectionChanged"
-                                              SelectionMode="Extended" SelectionUnit="FullRow">
+                                              SelectionMode="Single" SelectionUnit="FullRow">
                                         <DataGrid.Resources>
                                             <ContextMenu x:Key="ItemContextMenu">
                                                 <MenuItem Header="Add" Command="{Binding NewPlaylistCommand}"/>
                                                 <MenuItem Header="Remove" Command="{Binding RemovePlaylistSelectionFromDbCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Export" Command="{Binding ExportSelectedPlaylistCommand}"/>
                                             </ContextMenu>
                                         </DataGrid.Resources>
                                         <DataGrid.ContextMenu>
@@ -168,8 +171,6 @@
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
                                             <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
-                                            <DataGridTextColumn Header="Link" Binding="{Binding Link}"/>
-                                            <DataGridTextColumn Header="Count" Binding="{Binding TrackCount}"/>
                                             <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
@@ -204,6 +205,15 @@
                                     </FlowDocument>
                                 </RichTextBox>
                             </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingPlaylist, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Track selection:" Width="100"/>
+                                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3">
+                                    <TextBlock Text="{Binding EditPlaylistTrackFilter, Mode=TwoWay}" Width="280" 
+                                       HorizontalAlignment="Left" MouseDown="EditTrackQuery_MouseDown" Background="LightBlue"
+                                       Height="100" 
+                                       MouseEnter="TextBlockHoverHighlight_MouseEnter" MouseLeave="TextBlockHoverHighlight_MouseLeave"/>
+                                </Border>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Label Content="Link:" Width="100"/>
                                 <TextBox Text="{Binding EditLink, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
@@ -216,7 +226,7 @@
                                 <Label Content="Album:" Width="100"/>
                                 <TextBox Text="{Binding EditAlbum, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="10">
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrackOrRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Label Content="Additional Settings:" Width="120"/>
                                 <StackPanel>
                                     <CheckBox Content="Locked" IsThreeState="True" IsChecked="{Binding EditLocked}" PreviewMouseDown="CheckBox_DontAllowIndeterminate">

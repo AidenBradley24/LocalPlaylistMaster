@@ -25,6 +25,11 @@
                     </FlowDocument>
                 </RichTextBox>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <TextBlock Foreground="Blue" TextAlignment="Center" Width="380" Height="14">
+                    Tracks can be added after the playlist is created.
+                </TextBlock>
+            </StackPanel>
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
             <Button Click="CancelButton"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
