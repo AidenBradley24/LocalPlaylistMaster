@@ -1125,12 +1125,5 @@ namespace LocalPlaylistMaster.Backend
 
             return tracks;
         }
-
-        public async Task<PlaylistExportManager> CreatePlaylistExport(Playlist playlist)
-        {
-            UserQuery query = new(playlist.Tracks);
-            var allTracks = await ExecuteUserQuery(query, PlaylistExportManager.MAX_PLAYLIST_SIZE, 0);
-            return new PlaylistExportManager(playlist, allTracks, audioDir);
-        }
     }
 }

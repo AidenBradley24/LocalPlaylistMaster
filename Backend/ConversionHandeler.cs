@@ -35,7 +35,7 @@ namespace LocalPlaylistMaster.Backend
             int totalTaskCount = argumentQueue.Count;
             int completedTaskCount = 0;
 
-            while (argumentQueue.Any() || tasks.Any())
+            while (argumentQueue.Count != 0 || tasks.Count != 0)
             {
                 int removedCount = tasks.RemoveAll(task => task.IsCompleted);
                 if(removedCount > 0)
@@ -45,7 +45,7 @@ namespace LocalPlaylistMaster.Backend
                     reporter.Report((ReportType.Progress, progressValue));
                 }
 
-                if (tasks.Count < MAX_PROCESS_COUNT && argumentQueue.Any())
+                if (tasks.Count < MAX_PROCESS_COUNT && argumentQueue.Count != 0)
                 {
                     Task task = ConvertIndividual(argumentQueue.Dequeue());
                     await task.ConfigureAwait(false);

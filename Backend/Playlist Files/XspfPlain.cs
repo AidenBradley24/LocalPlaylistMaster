@@ -10,8 +10,6 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
 
         public override string NsURL => null;
 
-        public override string ConfigName => "plain xspf playlist";
-
         public override string AppPlaylistURL => null;
 
         public override string AppTrackURL => null;

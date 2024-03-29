@@ -34,7 +34,7 @@ namespace LocalPlaylistMaster.Backend
         commas act as a seperate section which are ored together    
         quotes inside values are parsed as strings, \" and \\ can be used
         everything is case insensitive
-        whitespace is trimmed
+        whitespace outside of quotes is ignored
 
      */
 
