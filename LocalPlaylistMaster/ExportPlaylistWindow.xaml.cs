@@ -1,29 +1,59 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Xml.Linq;
 using LocalPlaylistMaster.Backend;
+using Microsoft.Win32;
 
 namespace LocalPlaylistMaster
 {
-    public partial class ExportPlaylistWindow : Window
+    public partial class ExportPlaylistWindow : Window, INotifyPropertyChanged
     {
         private readonly DatabaseManager dbManager;
-        private readonly Playlist playlist;
-        private PlaylistExportManager? playlistManager;
+        private readonly PlaylistExportManager playlistManager;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        public ExportPlaylistWindow(Playlist playlist, DatabaseManager manager)
+        private string fileLocation;
+        public string FileLocation
         {
-            dbManager = manager;
-            this.playlist = playlist;
+            get => fileLocation;
+            set
+            {
+                fileLocation = value;
+                OnPropertyChanged(nameof(FileLocation));
+                OnPropertyChanged(nameof(CreationMessage));
+            }
+        }
 
+        public ExportType MyExportType
+        {
+            get => playlistManager.Type;
+            set
+            {
+                playlistManager.Type = value;
+                OnPropertyChanged(nameof(MyExportType));
+            }
+        }
+
+        public ExportPlaylistWindow(Playlist playlist, DatabaseManager db)
+        {
+            DataContext = this;
+            dbManager = db;
+            playlistManager = new PlaylistExportManager()
+            {
+                Playlist = playlist,
+            };
+            MyExportType = ExportType.folder;
+            fileLocation = "";
             InitializeComponent();
             Task.Run(Setup);
         }
 
         private async Task Setup()
         {
-            playlistManager = await dbManager.CreatePlaylistExport(playlist);
+            await playlistManager.Setup(dbManager);
             Dispatcher.Invoke(WriteDoc);
         }
 
@@ -41,7 +71,7 @@ namespace LocalPlaylistMaster
 
             section.Blocks.Add(titleParagraph);
 
-            if (playlistManager.InvalidTracks.Any())
+            if (playlistManager.InvalidTracks?.Any() ?? false)
             {
                 Paragraph paragraph = new(new Run("The following tracks are inelgible for export.\nThey must be downloaded first."))
                 {
@@ -67,7 +97,7 @@ namespace LocalPlaylistMaster
                 section.Blocks.Add(list);
             }
 
-            if (playlistManager.ValidTracks.Any())
+            if (playlistManager.ValidTracks?.Any() ?? false)
             {
                 Paragraph paragraph = new(new Run("The following tracks will be included in the playlist."))
                 {
@@ -117,7 +147,96 @@ namespace LocalPlaylistMaster
 
         private async Task Export()
         {
+            if (string.IsNullOrWhiteSpace(FileLocation))
+            {
+                MessageBox.Show("Please fill in file location", "Unable to create playlist", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
+            if (FullPath == ERROR_PATH)
+            {
+                MessageBox.Show($"Unable to create playlist", "Invalid path", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            DirectoryInfo dir = new(FullPath);
+            if (!Directory.Exists(dir.Parent?.FullName))
+            {
+                MessageBox.Show($"Unable to create playlist in \"{FullPath}\"", "Directory does not exist", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            playlistManager.OutputDir = new DirectoryInfo(FullPath);
+
+            ProgressModel progressModel = new();
+            ProgressDisplay progressDisplayWindow = new(progressModel);
+            var reporter = progressModel.GetProgressReporter();
+            progressDisplayWindow.Show();
+            IsEnabled = false;
+
+            await Task.Run(async () =>
+            {
+                await playlistManager.Export(reporter);
+            });
+
+            IsEnabled = true;
+            progressDisplayWindow.Close();
+            Close();
+        }
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void SelectLocation(object sender, RoutedEventArgs e)
+        {
+            OpenFolderDialog openFolderDialog = new()
+            {
+                Multiselect = false,
+                ValidateNames = true,
+                DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                Title = "Select output folder",
+            };
+
+            if (openFolderDialog.ShowDialog(this) ?? false)
+            {
+                FileLocation = openFolderDialog.FolderName;
+            }
+        }
+
+        private const string ERROR_PATH = "Error!";
+        private string FullPath
+        {
+            get
+            {
+                try
+                {
+                    string path = Path.Join(Path.GetFullPath(FileLocation), Backend.Extensions.CleanName(playlistManager.Playlist?.Name ?? throw new Exception()));
+                    if (Backend.Extensions.IsInsideProject(path))
+                    {
+                        return ERROR_PATH;
+                    }
+                    return path;
+                }
+                catch
+                {
+                    return ERROR_PATH;
+                }
+            }
+        }
+
+        public string CreationMessage
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(FileLocation))
+                {
+                    return "Please fill in file location";
+                }
+
+                return $"This will create a new playlist in {FullPath}";
+            }
         }
     }
 }

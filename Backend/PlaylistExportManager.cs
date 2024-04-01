@@ -1,5 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.ComponentModel;
 using static LocalPlaylistMaster.Backend.ProgressModel;
+using static LocalPlaylistMaster.Backend.Extensions;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -15,24 +16,21 @@ namespace LocalPlaylistMaster.Backend
         public Playlist? Playlist { get; set; }
         public DirectoryInfo? OutputDir { get; set; }
 
-        public enum ExportType { folder, xspf }
         public ExportType Type { get; set; }
 
         private DirectoryInfo? inputDir;
-        private ExportType type;
         private int length = 0;
 
-        public void Setup(DatabaseManager db)
+        public async Task Setup(DatabaseManager db)
         {
             if(Playlist == null) throw new Exception("No playlist found");
             UserQuery query = new(Playlist.Tracks);
-            var task = db.ExecuteUserQuery(query, MAX_PLAYLIST_SIZE, 0);
-            task.Wait();
-            IEnumerable<Track> allTracks = task.Result;
+            IEnumerable<Track> allTracks = await db.ExecuteUserQuery(query, MAX_PLAYLIST_SIZE, 0);
             allTracks = allTracks.Where(t => !t.Settings.HasFlag(TrackSettings.removeMe));
             ValidTracks = allTracks.Where(t => t.Settings.HasFlag(TrackSettings.downloaded));
             InvalidTracks = allTracks.Where(t => !t.Settings.HasFlag(TrackSettings.downloaded));
             length = ValidTracks.Count();
+            inputDir = db.GetAudioDir();
         }
 
         public async Task Export(IProgress<(ReportType type, object report)> reporter)
@@ -60,18 +58,21 @@ namespace LocalPlaylistMaster.Backend
             await FillFinalTrackDir(trackDir, reporter);
         }
 
-        private async Task FillFinalTrackDir(DirectoryInfo trackDir, IProgress<(ReportType type, object report)> reporter)
+        private async Task FillFinalTrackDir(DirectoryInfo outputDir, IProgress<(ReportType type, object report)> reporter)
         {
             if (ValidTracks == null) throw new Exception("Setup first");
+            if (inputDir == null) throw new Exception("Setup first");
+            if(!outputDir.Exists) outputDir.Create();
+
             reporter.Report((ReportType.DetailText, "formatting files"));
             int i = 0;
             await Task.Run(() => Parallel.ForEach(ValidTracks, (track, _) =>
             {
-                FileInfo oldFile = new(Path.Join(trackDir.FullName,
+                FileInfo oldFile = new(Path.Join(inputDir.FullName,
                 $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}")); // TODO make this a seperate function in db
                 FileInfo newFile = new(Path.Join(
-                    trackDir.FullName,
-                    $"{CleanName().Replace(track.Name, "").Trim()}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                    outputDir.FullName,
+                    $"{CleanName(track.Name)}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
                 File.Copy(oldFile.FullName, newFile.FullName, true);
 
                 using (var tagFile = TagLib.File.Create(newFile.FullName))
@@ -84,14 +85,20 @@ namespace LocalPlaylistMaster.Backend
                     tagFile.Save();
                 }
 
+                int progress = (int)(100 * (++i / (float)length));
                 lock (reporter)
                 {
-                    reporter.Report((ReportType.Progress, ++i / (float)length));
+                    reporter.Report((ReportType.Progress, progress));
                 }
             }));
         }
+    }
 
-        [GeneratedRegex("[\\/:*?\"<>|]")]
-        private static partial Regex CleanName();
+    public enum ExportType 
+    {
+        [Description("Export mp3s to folder")]
+        folder,
+        [Description("Export to a xspf playlist, copying mp3s")]
+        xspf 
     }
 }

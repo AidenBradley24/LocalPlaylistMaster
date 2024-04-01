@@ -2,7 +2,6 @@
 using System.IO;
 using System.Windows;
 using LocalPlaylistMaster.Backend;
-using LocalPlaylistMaster.Backend.Extensions;
 using Microsoft.Win32;
 
 namespace LocalPlaylistMaster
@@ -46,7 +45,7 @@ namespace LocalPlaylistMaster
                     return "Please fill in file location";
                 }
                 
-                return $"This will create a new playlist in {FullPath}";
+                return $"This will create a new database in {FullPath}";
             }
         }
 
@@ -58,7 +57,7 @@ namespace LocalPlaylistMaster
                 try
                 {
                     string path = Path.Join(Path.GetFullPath(FileLocation), DbName);
-                    if (Extensions.IsInsideProject(path))
+                    if (Backend.Extensions.IsInsideProject(path))
                     {
                         return ERROR_PATH;
                     }

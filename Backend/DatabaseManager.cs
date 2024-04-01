@@ -1125,5 +1125,10 @@ namespace LocalPlaylistMaster.Backend
 
             return tracks;
         }
+
+        internal DirectoryInfo GetAudioDir()
+        {
+            return audioDir;
+        }
     }
 }

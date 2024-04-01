@@ -5,20 +5,29 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         xmlns:localplaylistmaster="clr-namespace:LocalPlaylistMaster" 
         xmlns:localplaylistmasterbackend="clr-namespace:LocalPlaylistMaster.Backend;assembly=LocalPlaylistMaster.Backend"
+        xmlns:ex="clr-namespace:LocalPlaylistMaster.Extensions"
         mc:Ignorable="d"
         Title="Export Playlist" Height="450" Width="420">
     <DockPanel>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
             <Rectangle Height="10"/>
-            <FlowDocumentScrollViewer Height="300">
+            <FlowDocumentScrollViewer Height="250">
                 <FlowDocument x:Name="Doc" PageWidth="Auto" PageHeight="Auto" Background="LightGray"/>
             </FlowDocumentScrollViewer>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Export Type:" Width="100"/>
-                <ComboBox Text="Select an export type" Width="300">
-                    <ComboBoxItem>Folder</ComboBoxItem>
-                    <ComboBoxItem>XSPF</ComboBoxItem>
-                </ComboBox>
+                <ComboBox ItemsSource="{Binding Source={ex:Enum {x:Type localplaylistmasterbackend:ExportType}}}"
+                        SelectedValue="{Binding MyExportType, Mode=TwoWay}" SelectedValuePath="Value" Width="280"
+                        DisplayMemberPath="Description"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <Label Content="File Location:" Width="100"/>
+                <TextBox Text="{Binding FileLocation, Mode=TwoWay}" AcceptsReturn="False" MaxLength="20" Width="260" HorizontalAlignment="Left"/>
+                <Button Name="selectLocationButton" Content="..." Click="SelectLocation" Width="20"/>
+            </StackPanel>
+            <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+                <TextBlock Text="{Binding CreationMessage, Mode=OneWay}" HorizontalAlignment="Right" Margin="5,0"/>
+                <Separator/>
             </StackPanel>
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">

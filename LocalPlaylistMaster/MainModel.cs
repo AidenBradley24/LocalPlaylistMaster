@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
-using LocalPlaylistMaster.ValueConverters;
+using LocalPlaylistMaster.Extensions;
 
 namespace LocalPlaylistMaster
 {

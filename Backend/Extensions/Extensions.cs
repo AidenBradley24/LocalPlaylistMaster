@@ -1,6 +1,8 @@
-﻿namespace LocalPlaylistMaster.Backend.Extensions
+﻿using System.Text.RegularExpressions;
+
+namespace LocalPlaylistMaster.Backend
 {
-    public static class Extensions
+    public static partial class Extensions
     {
         public static bool IsInsideProject(string fullPath)
         {
@@ -29,5 +31,18 @@
 
             return IsInsideProject(parent, project);
         }
+
+        /// <summary>
+        /// Clean a name for use in the file system
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static string CleanName(string name)
+        {
+            return CleanName().Replace(name, "").Trim();
+        }
+
+        [GeneratedRegex("[\\/:*?\"<>|]")]
+        private static partial Regex CleanName();
     }
 }
