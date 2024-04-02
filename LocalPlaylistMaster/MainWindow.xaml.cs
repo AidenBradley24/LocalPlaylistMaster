@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace LocalPlaylistMaster
 {
@@ -54,7 +55,7 @@ namespace LocalPlaylistMaster
             }
         }
 
-        private void CreateNewPlaylist(object sender, RoutedEventArgs e)
+        private void CreateNewDb(object sender, RoutedEventArgs e)
         {
             NewDbWindow window = new(dependencyProcessManager)
             {
@@ -65,6 +66,7 @@ namespace LocalPlaylistMaster
             };
 
             window.ShowDialog();
+            Model.AddRecent(window.FullPath);
         }
 
         private void AddRemote(object sender, RoutedEventArgs e)
@@ -77,7 +79,7 @@ namespace LocalPlaylistMaster
             DbManager = playlist;
         }
 
-        private void OpenExistingPlaylist(object sender, RoutedEventArgs e)
+        private void OpenExistingDb(object sender, RoutedEventArgs e)
         {
             OpenFolderDialog openFolderDialog = new()
             {
@@ -89,24 +91,30 @@ namespace LocalPlaylistMaster
 
             if (openFolderDialog.ShowDialog(this) ?? false)
             {
-                DirectoryInfo dir = new(openFolderDialog.FolderName);
-                if (!dir.Exists)
-                {
-                    MessageBox.Show("Directory doesn't exist", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                OpenExistingDb(openFolderDialog.FolderName);
+            }
+        }
 
-                try
-                {
-                    DbManager = new DatabaseManager(dir.FullName, dependencyProcessManager, false);
-                    Model.RefreshAll();
-                }
-                catch (Exception ex)
-                {
-                    DbManager = null;
-                    Model.RefreshAll();
-                    MessageBox.Show(ex.Message, "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+        public void OpenExistingDb(string path)
+        {
+            DirectoryInfo dir = new(path);
+            if (!dir.Exists)
+            {
+                MessageBox.Show("Directory doesn't exist", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                DbManager = new DatabaseManager(dir.FullName, dependencyProcessManager, false);
+                Model.AddRecent(path);
+                Model.RefreshAll();
+            }
+            catch (Exception ex)
+            {
+                DbManager = null;
+                Model.RefreshAll();
+                MessageBox.Show(ex.Message, "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -177,6 +185,11 @@ namespace LocalPlaylistMaster
         {
             // Change the border brush color back when the mouse leaves the text block
             ((Border)((TextBlock)sender).Parent).BorderBrush = Brushes.Gray;
+        }
+
+        private void CloseApp(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }

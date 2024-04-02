@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using static LocalPlaylistMaster.Backend.ProgressModel;
 using static LocalPlaylistMaster.Backend.Extensions;
+using LocalPlaylistMaster.Backend.Playlist_Files;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -48,14 +49,16 @@ namespace LocalPlaylistMaster.Backend
                 return;
             }
 
-            switch(Type)
-            {
-                case ExportType.xspf:
-                    break;
-            }
-
             var trackDir = Directory.CreateDirectory(Path.Combine(OutputDir.FullName, "tracks"));
             await FillFinalTrackDir(trackDir, reporter);
+
+            PlaylistFile playlistFile = Type switch
+            {
+                ExportType.xspf => new XspfPlain(),
+                _ => throw new Exception("not a valid playlist file")
+            };
+
+            playlistFile.Build(OutputDir, trackDir, Playlist);
         }
 
         private async Task FillFinalTrackDir(DirectoryInfo outputDir, IProgress<(ReportType type, object report)> reporter)
@@ -69,14 +72,15 @@ namespace LocalPlaylistMaster.Backend
             await Task.Run(() => Parallel.ForEach(ValidTracks, (track, _) =>
             {
                 FileInfo oldFile = new(Path.Join(inputDir.FullName,
-                $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}")); // TODO make this a seperate function in db
+                $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
                 FileInfo newFile = new(Path.Join(
                     outputDir.FullName,
                     $"{CleanName(track.Name)}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
-                File.Copy(oldFile.FullName, newFile.FullName, true);
 
-                using (var tagFile = TagLib.File.Create(newFile.FullName))
+                if (!newFile.Exists)
                 {
+                    File.Copy(oldFile.FullName, newFile.FullName, true);
+                    using var tagFile = TagLib.File.Create(newFile.FullName);
                     tagFile.Tag.Title = track.Name;
                     tagFile.Tag.Description = track.Description;
                     tagFile.Tag.Album = track.Album;
@@ -85,9 +89,9 @@ namespace LocalPlaylistMaster.Backend
                     tagFile.Save();
                 }
 
-                int progress = (int)(100 * (++i / (float)length));
                 lock (reporter)
                 {
+                    int progress = (int)(100 * (++i / (float)length));
                     reporter.Report((ReportType.Progress, progress));
                 }
             }));
@@ -99,6 +103,6 @@ namespace LocalPlaylistMaster.Backend
         [Description("Export mp3s to folder")]
         folder,
         [Description("Export to a xspf playlist, copying mp3s")]
-        xspf 
+        xspf,
     }
 }

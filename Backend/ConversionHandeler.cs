@@ -17,7 +17,7 @@ namespace LocalPlaylistMaster.Backend
             dependencyProcessManager = dependencies;
             MAX_PROCESS_COUNT = Math.Max(1, Environment.ProcessorCount / 2);
 
-            reporter.Report((ReportType.DetailText, $"Converting audio...\nUsing {MAX_PROCESS_COUNT} threads."));
+            reporter.Report((ReportType.DetailText, $"Converting audio...\nUsing a max of {MAX_PROCESS_COUNT} processes."));
             reporter.Report((ReportType.Progress, 0));
 
             argumentQueue = new();
@@ -33,36 +33,31 @@ namespace LocalPlaylistMaster.Backend
         {
             List<Task> tasks = new(MAX_PROCESS_COUNT);
             int totalTaskCount = argumentQueue.Count;
-            int completedTaskCount = 0;
 
-            while (argumentQueue.Count != 0 || tasks.Count != 0)
+            while (argumentQueue.Count > 0 || tasks.Count > 0)
             {
-                int removedCount = tasks.RemoveAll(task => task.IsCompleted);
-                if(removedCount > 0)
+                while (tasks.Count < MAX_PROCESS_COUNT && argumentQueue.Count > 0)
                 {
-                    completedTaskCount += removedCount;
-                    int progressValue = (int)((float)completedTaskCount / totalTaskCount * 100);
-                    reporter.Report((ReportType.Progress, progressValue));
+                    string arg = argumentQueue.Dequeue();
+                    Task task = Task.Run(async () =>
+                    {
+                        var ffmpeg = dependencyProcessManager.CreateFfmpegProcess();
+                        ffmpeg.StartInfo.Arguments = arg;
+                        ffmpeg.StartInfo.CreateNoWindow = true;
+                        ffmpeg.Start();
+                        await ffmpeg.WaitForExitAsync();
+                    });
+
+                    tasks.Add(task);
                 }
 
-                if (tasks.Count < MAX_PROCESS_COUNT && argumentQueue.Count != 0)
-                {
-                    Task task = ConvertIndividual(argumentQueue.Dequeue());
-                    await task.ConfigureAwait(false);
-                    tasks.Add(task); 
-                }
+                Task completedTask = await Task.WhenAny(tasks);
+                tasks.Remove(completedTask);
 
-                await Task.Delay(100);
+                int completedTaskCount = totalTaskCount - argumentQueue.Count - tasks.Count;
+                int progressValue = (int)((float)completedTaskCount / totalTaskCount * 100);
+                reporter.Report((ReportType.Progress, progressValue));
             }
-        }
-
-        private async Task ConvertIndividual(string args)
-        {
-            var ffmpeg = dependencyProcessManager.CreateFfmpegProcess();
-            ffmpeg.StartInfo.Arguments = args;
-            ffmpeg.StartInfo.CreateNoWindow = true;
-            ffmpeg.Start();
-            await ffmpeg.WaitForExitAsync();
         }
     }
 }

@@ -51,7 +51,7 @@ namespace LocalPlaylistMaster
 
 
         private const string ERROR_PATH = "Error!";
-        private string FullPath { 
+        public string FullPath { 
             get 
             {
                 try

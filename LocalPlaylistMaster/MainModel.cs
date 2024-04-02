@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
 using LocalPlaylistMaster.Extensions;
@@ -103,6 +104,12 @@ namespace LocalPlaylistMaster
         private int currentTrackOffset = 0;
         private int currentRemoteOffset = 0;
         private int currentPlaylistOffset = 0;
+        private const int MAX_RECENT = 5;
+
+        public bool HasRecent
+        {
+            get => Settings.Default.RecentDbs.Count > 0;
+        }
 
         #region Edit Records Properties
 
@@ -288,6 +295,43 @@ namespace LocalPlaylistMaster
 
             ExportSelectedPlaylistCommand = new RelayCommand(ExportSelectedPlaylist,
                 () => manager != null && EditingPlaylist);
+
+            if(Settings.Default.RecentDbs == null) Settings.Default.RecentDbs = [];
+            UpdateRecent();
+        }
+
+        internal void UpdateRecent()
+        {
+            int over = Settings.Default.RecentDbs.Count - MAX_RECENT;
+            for (int i = 0; i < over; i++)
+            {
+                Settings.Default.RecentDbs.RemoveAt(0);
+            }
+
+            Host.RecentMenu.Items.Clear();
+            for (int i = Settings.Default.RecentDbs.Count - 1; i >= 0; i--)
+            {
+                string path = Settings.Default.RecentDbs[i] ?? "";
+                MenuItem childMenu = new()
+                {
+                    Header = Settings.Default.RecentDbs[i],
+                    Command = new RelayCommand(() => Host.OpenExistingDb(path))
+                };
+                Host.RecentMenu.Items.Add(childMenu);
+            }
+
+            Settings.Default.Save();
+        }
+
+        internal void AddRecent(string recent)
+        {
+            if (Settings.Default.RecentDbs.Contains(recent))
+            {
+                Settings.Default.RecentDbs.Remove(recent);
+            }
+
+            Settings.Default.RecentDbs.Add(recent);
+            UpdateRecent();
         }
 
         private bool HasDb() => manager != null;
@@ -865,6 +909,7 @@ namespace LocalPlaylistMaster
             bool? result = window.ShowDialog();
             if (result != true) return;
             trackUserQuery = window.Result ?? new UserQuery("");
+            currentTrackOffset = 0;
             RefreshTracks();
         }
 
@@ -874,6 +919,7 @@ namespace LocalPlaylistMaster
             if (HasPendingChanges()) return;
 
             trackUserQuery = new UserQuery("");
+            currentTrackOffset = 0;
             RefreshTracks();
         }
 

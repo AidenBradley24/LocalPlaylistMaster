@@ -35,6 +35,11 @@
     <Compile Update="ExportPlaylistWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
     <Compile Update="UserQueryWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -44,5 +49,12 @@
     <Compile Update="NewPlaylistWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 </Project>
