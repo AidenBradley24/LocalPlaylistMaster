@@ -11,6 +11,7 @@
         /// <param name="targetDirectory">Directory to place the file</param>
         /// <param name="trackDirectory">Location of the tagged audio files</param>
         /// <param name="bundle">Playlist information</param>
-        public abstract void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, Playlist bundle);
+        /// <param name="trackFileMap">Mapping audio file to track record</param>
+        public abstract void Build(DirectoryInfo targetDirectory, Playlist bundle, Dictionary<FileInfo, Track> trackFileMap, bool fullPath);
     }
 }

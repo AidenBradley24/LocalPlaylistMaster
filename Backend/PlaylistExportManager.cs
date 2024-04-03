@@ -19,6 +19,8 @@ namespace LocalPlaylistMaster.Backend
 
         public ExportType Type { get; set; }
 
+        public bool HasLib { get => Type == ExportType.xspflib || Type == ExportType.m3u8lib; }
+
         private DirectoryInfo? inputDir;
         private int length = 0;
 
@@ -49,23 +51,33 @@ namespace LocalPlaylistMaster.Backend
                 return;
             }
 
-            var trackDir = Directory.CreateDirectory(Path.Combine(OutputDir.FullName, "tracks"));
-            await FillFinalTrackDir(trackDir, reporter);
+            Dictionary<FileInfo, Track> map;
+            if (HasLib)
+            {
+                map = MapFilesFromLibrary();
+            }
+            else
+            {
+                var trackDir = Directory.CreateDirectory(Path.Combine(OutputDir.FullName, "tracks"));
+                map = await FillFinalTrackDir(trackDir, reporter);
+            }   
 
             PlaylistFile playlistFile = Type switch
             {
-                ExportType.xspf => new XspfPlain(),
+                ExportType.xspf or ExportType.xspflib => new XspfFile(),
+                ExportType.m3u8 or ExportType.m3u8lib => new M3U8File(),
                 _ => throw new Exception("not a valid playlist file")
             };
-
-            playlistFile.Build(OutputDir, trackDir, Playlist);
+            playlistFile.Build(OutputDir, Playlist, map, HasLib);
         }
 
-        private async Task FillFinalTrackDir(DirectoryInfo outputDir, IProgress<(ReportType type, object report)> reporter)
+        private async Task<Dictionary<FileInfo, Track>> FillFinalTrackDir(DirectoryInfo outputDir, IProgress<(ReportType type, object report)> reporter)
         {
             if (ValidTracks == null) throw new Exception("Setup first");
             if (inputDir == null) throw new Exception("Setup first");
             if(!outputDir.Exists) outputDir.Create();
+
+            Dictionary<FileInfo, Track> trackFileMap = [];
 
             reporter.Report((ReportType.DetailText, "formatting files"));
             int i = 0;
@@ -89,12 +101,33 @@ namespace LocalPlaylistMaster.Backend
                     tagFile.Save();
                 }
 
+                lock (trackFileMap)
+                {
+                    trackFileMap.Add(newFile, track);
+                }
+
                 lock (reporter)
                 {
                     int progress = (int)(100 * (++i / (float)length));
                     reporter.Report((ReportType.Progress, progress));
                 }
             }));
+
+            return trackFileMap;
+        }
+
+        private Dictionary<FileInfo, Track> MapFilesFromLibrary()
+        {
+            if (ValidTracks == null) throw new Exception("Setup first");
+            if (inputDir == null) throw new Exception("Setup first");
+
+            Dictionary<FileInfo, Track> trackFileMap = [];
+            foreach (Track track in ValidTracks)
+            {
+                FileInfo audioFile = new(Path.Join(inputDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+                trackFileMap.Add(audioFile, track);
+            }
+            return trackFileMap;
         }
     }
 
@@ -104,5 +137,11 @@ namespace LocalPlaylistMaster.Backend
         folder,
         [Description("Export to a xspf playlist, copying mp3s")]
         xspf,
+        [Description("Export to a m3u8 playlist, copying mp3s")]
+        m3u8,
+        [Description("Export to a xspf playlist, using library mp3s")]
+        xspflib,
+        [Description("Export to a m3u8 playlist, using library mp3s")]
+        m3u8lib,
     }
 }

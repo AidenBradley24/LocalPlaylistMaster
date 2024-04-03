@@ -34,6 +34,7 @@ namespace LocalPlaylistMaster
             {
                 playlistManager.Type = value;
                 OnPropertyChanged(nameof(MyExportType));
+                OnPropertyChanged(nameof(CreationMessage));
             }
         }
 
@@ -212,7 +213,7 @@ namespace LocalPlaylistMaster
             {
                 try
                 {
-                    string path = Path.Join(Path.GetFullPath(FileLocation), Backend.Extensions.CleanName(playlistManager.Playlist?.Name ?? throw new Exception()));
+                    string path = playlistManager.HasLib ? Path.GetFullPath(FileLocation) : Path.Join(Path.GetFullPath(FileLocation), Backend.Extensions.CleanName(playlistManager.Playlist?.Name ?? throw new Exception()));
                     if (Backend.Extensions.IsInsideProject(path))
                     {
                         return ERROR_PATH;

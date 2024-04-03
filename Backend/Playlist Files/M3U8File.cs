@@ -1,28 +1,30 @@
 ﻿using System.Text;
+using System.Text.Encodings.Web;
 
 namespace LocalPlaylistMaster.Backend.Playlist_Files
 {
-    internal abstract class M3U8File : PlaylistFile
+    internal class M3U8File : PlaylistFile
     {
-        public override void Build(DirectoryInfo targetDirectory, DirectoryInfo trackDirectory, Playlist bundle)
+        public override void Build(DirectoryInfo targetDirectory, Playlist bundle, Dictionary<FileInfo, Track> trackFileMap, bool fullPath)
         {
             using FileStream stream = File.Open(Path.Combine(targetDirectory.FullName, "playlist.m3u8"), FileMode.Create);
             using StreamWriter writer = new(stream, Encoding.UTF8);
             writer.WriteLine("#EXTM3U");
 
-            foreach (FileInfo file in trackDirectory.EnumerateFiles())
+            var url = UrlEncoder.Default;
+
+            foreach(var pair in trackFileMap)
             {
-                string location = GetLocation(file);
+                FileInfo file = pair.Key;
+                Track track = pair.Value;
 
-                TagLib.File tagFile = TagLib.File.Create(file.FullName);
-                string artist = string.Join(" & ", tagFile.Tag.Performers).Replace(",", "").Replace("-", "|").Trim();
-                string title = tagFile.Tag.Title.Replace(",", "").Replace("-", "|").Trim();
+                string location = fullPath ? "file:///" + url.Encode(file.FullName) : "file:///tracks/" + url.Encode(file.Name);
+                string artist = string.Join(" & ", track.Artists).Replace(",", "").Replace("-", "|").Trim();
+                string title = track.Name.Replace(",", "").Replace("-", "|").Trim();
 
-                writer.WriteLine($"#EXTINF:{tagFile.Properties.Duration.Seconds},{artist} - {title}");
+                writer.WriteLine($"#EXTINF:{track.TimeInSeconds},{artist} - {title}");
                 writer.WriteLine(location);
             }
         }
-
-        protected abstract string GetLocation(FileInfo file);
     }
 }
