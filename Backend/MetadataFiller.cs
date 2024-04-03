@@ -1,25 +1,17 @@
-﻿using System.Reflection;
-using System.Configuration;
-using System.Globalization;
-using System.Formats.Tar;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace LocalPlaylistMaster.Backend
 {
-    internal class MetadataFiller
+    internal class MetadataFiller(FillerSuite suite)
     {
-        private readonly FillerSuite suite;
-
-        public MetadataFiller(FillerSuite suite)
-        {
-            this.suite = suite;
-        }
+        private readonly FillerSuite suite = suite;
 
         public List<Track> FillAll(IEnumerable<Track> tracks)
         {
-            List<Track> result = new();
+            List<Track> result = [];
             foreach (var track in tracks)
             {
+                bool filled = false;
                 foreach (MetadataBase filler in suite)
                 {
                     try
@@ -28,6 +20,7 @@ namespace LocalPlaylistMaster.Backend
                         {
                             Trace.WriteLine($"Filled metadata with {filler.Name}");
                             result.Add(modified);
+                            filled = true;
                             break;
                         }
                     }
@@ -36,6 +29,8 @@ namespace LocalPlaylistMaster.Backend
                         Trace.WriteLine($"{filler.Name} failed.\n{ex.Message}");
                     }
                 }
+
+                if (!filled) result.Add(track);
             }
 
             return result;
