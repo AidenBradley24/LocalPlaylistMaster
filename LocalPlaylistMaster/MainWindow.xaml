@@ -86,7 +86,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <!-- First panel -->
-                <Border Grid.Column="0" Background="LightBlue" Margin="5">
+                <Border Grid.Column="2" Background="LightBlue" Margin="5">
                     <Grid>
                         <TabControl x:Name="tabControl" SelectionChanged="TabControl_SelectionChanged" PreviewMouseDown="TabControl_PreviewMouseDown">
                             <TabItem Name="tracksTab" Header="Tracks">
@@ -188,7 +188,7 @@
                 <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
 
                 <!-- Second panel -->
-                <Border Grid.Column="2" Background="LightGray" Margin="5">
+                <Border Grid.Column="0" Background="LightGray" Margin="5" Width="Auto" MinWidth="350">
                     <DockPanel Visibility="{Binding IsItemSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
                             <TextBlock Text="{Binding SelectedText}"/>
