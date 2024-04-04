@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -14,6 +17,7 @@ namespace LocalPlaylistMaster.Backend
         public string Description { get; set; }
         public int Rating { get; set; }
         public int TimeInSeconds { get; set; }
+        public string MiscJson { get; set; }
 
         public TrackSettings Settings { get; set; }
         public bool Locked
@@ -56,7 +60,7 @@ namespace LocalPlaylistMaster.Backend
         public const int UNINITIALIZED = -1;
 
         public Track(int id, string name, int remote, string remoteId, string artists, string album, string description,
-            int rating, int timeInSeconds, TrackSettings settings)
+            int rating, int timeInSeconds, TrackSettings settings, string miscJson)
         {
             Id = id;
             Name = name;
@@ -68,6 +72,7 @@ namespace LocalPlaylistMaster.Backend
             Rating = rating;
             TimeInSeconds = timeInSeconds;
             Settings = settings;
+            MiscJson = miscJson;
         }
 
         public Track()
@@ -81,6 +86,7 @@ namespace LocalPlaylistMaster.Backend
             Description = "";
             Rating = UNINITIALIZED;
             TimeInSeconds = UNINITIALIZED;
+            MiscJson = "{}";
         }
 
         public Track(Track old)
@@ -95,6 +101,72 @@ namespace LocalPlaylistMaster.Backend
             Rating = old.Rating;
             TimeInSeconds = old.TimeInSeconds;
             Settings = old.Settings;
+            MiscJson = old.MiscJson;
+        }
+
+        public void Backup()
+        {
+            using var doc = JsonDocument.Parse(MiscJson);
+            var root = doc.RootElement;
+            JsonObject backupObject = new()
+            {
+                { nameof(Name), Name },
+                { nameof(Description), Description },
+                { nameof(Artists), Artists },
+                { nameof(Album), Album },
+                { nameof(Rating), Rating }
+            };
+            UpdateJson(root, "backup", backupObject);
+        }
+
+        public void Rollback()
+        {
+            using var doc = JsonDocument.Parse(MiscJson);
+            var root = doc.RootElement;
+            if(root.TryGetProperty("backup", out JsonElement backup))
+            {
+                Name = backup.GetProperty(nameof(Name)).GetString() ?? Name;
+                Description = backup.GetProperty(nameof(Description)).GetString() ?? Description;
+                Artists = backup.GetProperty(nameof(Artists)).GetString() ?? Artists;
+                Album = backup.GetProperty(nameof(Album)).GetString() ?? Album;
+                Rating = backup.GetProperty(nameof(Rating)).GetInt32();
+            }
+        }
+
+        public (string name, string description, string artists, string album, int rating)? SoftRollback()
+        {
+            using var doc = JsonDocument.Parse(MiscJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("backup", out JsonElement backup))
+            {
+                string name = backup.GetProperty(nameof(Name)).GetString() ?? Name;
+                string description = backup.GetProperty(nameof(Description)).GetString() ?? Description;
+                string artists = backup.GetProperty(nameof(Artists)).GetString() ?? Artists;
+                string album = backup.GetProperty(nameof(Album)).GetString() ?? Album;
+                int rating = backup.GetProperty(nameof(Rating)).GetInt32();
+                return (name, description, artists, album, rating);
+            }
+
+            return null;
+        }
+
+        private void UpdateJson(JsonElement root, string propertyName, JsonObject obj)
+        {
+            using var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                writer.WriteStartObject();
+                foreach (var property in root.EnumerateObject())
+                {
+                    if (property.Name == propertyName) continue;
+                    writer.WritePropertyName(property.Name);
+                    property.Value.WriteTo(writer);
+                }
+                writer.WritePropertyName(propertyName);
+                obj.WriteTo(writer);
+                writer.WriteEndObject();
+            }
+            MiscJson = Encoding.UTF8.GetString(stream.ToArray());
         }
 
         public string LengthString { get => TimeInSeconds == UNINITIALIZED ? "?" : TimeSpan.FromSeconds(TimeInSeconds).ToString(@"hh\:mm\:ss"); }

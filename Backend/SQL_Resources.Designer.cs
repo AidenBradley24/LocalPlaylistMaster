@@ -102,7 +102,8 @@ namespace LocalPlaylistMaster.Backend {
         ///	Description TEXT,
         ///	Rating INTEGER,
         ///	TimeInSeconds INTEGER,
-        ///	Settings INTEGER
+        ///	Settings INTEGER,
+        ///	MiscJson Text
         ///);.
         /// </summary>
         internal static string create_tracks {

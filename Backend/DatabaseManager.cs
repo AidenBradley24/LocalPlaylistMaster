@@ -106,7 +106,7 @@ namespace LocalPlaylistMaster.Backend
         {
             using SQLiteCommand command = db.CreateCommand();
             StringBuilder sb = new("INSERT INTO Tracks (Name, Remote, RemoteId, Artists," +
-                " Album, Description, Rating, TimeInSeconds, Settings) VALUES\n");
+                " Album, Description, Rating, TimeInSeconds, Settings, MiscJson) VALUES\n");
 
             var e = tracks.GetEnumerator();
             if (!e.MoveNext()) return;
@@ -122,7 +122,9 @@ namespace LocalPlaylistMaster.Backend
                 string rat = $"@RAT{i}";
                 string tme = $"@TME{i}";
                 string set = $"@SET{i}";
-                sb.Append($"({n},{r},{rid},{art},{alb},{des},{rat},{tme},{set})");
+                string json = $"@JSON{i}";
+
+                sb.Append($"({n},{r},{rid},{art},{alb},{des},{rat},{tme},{set},{json})");
 
                 Track track = e.Current;
                 bool end = !e.MoveNext();
@@ -137,6 +139,7 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.AddWithValue(rat, track.Rating);
                 command.Parameters.AddWithValue(tme, track.TimeInSeconds);
                 command.Parameters.AddWithValue(set, (int)track.Settings);
+                command.Parameters.AddWithValue(json, track.MiscJson);
 
                 if (end) break;
             }
@@ -384,7 +387,8 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetString("Description"),
                     reader.GetInt32("Rating"),
                     reader.GetInt32("TimeInSeconds"),
-                    (TrackSettings)reader.GetInt32("Settings"));
+                    (TrackSettings)reader.GetInt32("Settings"),
+                    reader.GetString("MiscJson"));
                 tracks.Add(track);
             }
 
@@ -908,7 +912,8 @@ namespace LocalPlaylistMaster.Backend
                 sb.Append("Description = @Description, ");
                 sb.Append("Rating = @Rating, ");
                 sb.Append("TimeInSeconds = @TimeInSeconds, ");
-                sb.Append("Settings = @Settings ");
+                sb.Append("Settings = @Settings, ");
+                sb.Append("MiscJson = @MiscJson ");
                 sb.Append("WHERE Id = @Id");
                 command.CommandText = sb.ToString();
 
@@ -923,6 +928,7 @@ namespace LocalPlaylistMaster.Backend
                     command.Parameters.AddWithValue("@Rating", track.Rating);
                     command.Parameters.AddWithValue("@TimeInSeconds", track.TimeInSeconds);
                     command.Parameters.AddWithValue("@Settings", (int)track.Settings);
+                    command.Parameters.AddWithValue("@MiscJson", track.MiscJson);
                     command.Parameters.AddWithValue("@Id", track.Id);
 
                     updatedCount += await command.ExecuteNonQueryAsync();
@@ -1119,7 +1125,8 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetString("Description"),
                     reader.GetInt32("Rating"),
                     reader.GetInt32("TimeInSeconds"),
-                    (TrackSettings)reader.GetInt32("Settings"));
+                    (TrackSettings)reader.GetInt32("Settings"),
+                    reader.GetString("MiscJson"));
                 tracks.Add(track);
             }
 

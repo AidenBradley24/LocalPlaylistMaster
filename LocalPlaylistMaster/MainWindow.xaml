@@ -242,6 +242,8 @@
 
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
+                            <Button Command="{Binding RollbackCommand}" Content="Rollback" Padding="20,8" Margin="5" HorizontalAlignment="Left" 
+                                    Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <Button Click="CancelItemUpdate"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
                             <Button Click="ConfirmItemUpdate" Content="Update" Padding="20,8" Margin="5" HorizontalAlignment="Left"/>
                         </StackPanel>

@@ -255,6 +255,7 @@ namespace LocalPlaylistMaster
         public ICommand ClearFilterCommand { get; }
 
         public ICommand ExportSelectedPlaylistCommand { get; }
+        public ICommand RollbackCommand { get; }
 
         public MainModel(MainWindow host)
         {
@@ -295,6 +296,7 @@ namespace LocalPlaylistMaster
 
             ExportSelectedPlaylistCommand = new RelayCommand(ExportSelectedPlaylist,
                 () => manager != null && EditingPlaylist);
+            RollbackCommand = new RelayCommand(Rollback, () => EditingTrack);
 
             if(Settings.Default.RecentDbs == null) Settings.Default.RecentDbs = [];
             UpdateRecent();
@@ -618,6 +620,38 @@ namespace LocalPlaylistMaster
             }
         }
 
+        private void Rollback()
+        {
+            AssertDb();
+            if (propertyManager == null || propertyManager.MyType != typeof(Track)) return;
+            if (HasPendingChanges()) return;
+            var tracks = propertyManager.GetCollection<Track>();
+
+            if(tracks.Count() == 1)
+            {
+                Track track = tracks.First();
+                var soft = track.SoftRollback();
+                if (soft == null) return;
+                var (name, description, artists, album, rating) = soft.Value;
+                EditName = name;
+                EditDescription = description;
+                EditArtists = artists;
+                EditAlbum = album;
+                // TODO edit rating
+                return;
+            }
+
+            var result = MessageBox.Show("Do you want to rollback tracks to fetched data?\nThis cannot be undone.", "Rollback", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+            foreach(Track track in tracks)
+            {
+                track.Rollback();
+            }
+            var task = manager?.UpdateTracks(tracks) ?? throw new Exception();
+            task.Wait();
+            RefreshTracks();           
+        }
+
         #region Db Updates
 
         private DatabaseManager AssertDb()
@@ -634,7 +668,7 @@ namespace LocalPlaylistMaster
         {
             if (propertyManager?.PendingChanges ?? false)
             {
-                MessageBox.Show("You have unapplied changes.\nCancel them to continue.", "ERROR!", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("You have unapplied changes.\nCancel or apply them to continue.", "Not allowed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return true;
             }
             return false;

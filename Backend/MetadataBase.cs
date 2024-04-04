@@ -2,6 +2,7 @@
 {
     /// <summary>
     /// A meta data filling scheme; Only one can be used per track.
+    /// <b>MUST BE THREAD SAFE</b>
     /// </summary>
     public abstract class MetadataBase
     {

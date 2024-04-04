@@ -8,5 +8,6 @@
 	Description TEXT,
 	Rating INTEGER,
 	TimeInSeconds INTEGER,
-	Settings INTEGER
+	Settings INTEGER,
+	MiscJson Text
 );

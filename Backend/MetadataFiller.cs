@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace LocalPlaylistMaster.Backend
+﻿namespace LocalPlaylistMaster.Backend
 {
     internal class MetadataFiller(FillerSuite suite)
     {
@@ -9,29 +7,29 @@ namespace LocalPlaylistMaster.Backend
         public List<Track> FillAll(IEnumerable<Track> tracks)
         {
             List<Track> result = [];
-            foreach (var track in tracks)
+
+            Parallel.ForEach(tracks, (Track track) =>
             {
-                bool filled = false;
+                track.Backup();
+                Track resultTrack = track;
                 foreach (MetadataBase filler in suite)
                 {
                     try
                     {
                         if (filler.Fill(track, out Track modified))
                         {
-                            Trace.WriteLine($"Filled metadata with {filler.Name}");
-                            result.Add(modified);
-                            filled = true;
+                            resultTrack = modified;
                             break;
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine($"{filler.Name} failed.\n{ex.Message}");
-                    }
+                    catch { }
                 }
 
-                if (!filled) result.Add(track);
-            }
+                lock (result)
+                {
+                    result.Add(resultTrack);
+                }
+            });
 
             return result;
         }
