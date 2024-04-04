@@ -322,6 +322,21 @@ namespace LocalPlaylistMaster
                 Host.RecentMenu.Items.Add(childMenu);
             }
 
+            Host.RecentMenu.Items.Add(new Separator());
+            MenuItem clearRecent = new()
+            {
+                Header = "Clear",
+                Command = new RelayCommand(() => 
+                {
+                    MessageBoxResult result = MessageBox.Show("Clear recent?", "Confirm", MessageBoxButton.YesNo);
+                    if (result != MessageBoxResult.Yes) return;
+                    Settings.Default.RecentDbs.Clear();
+                    OnPropertyChanged(nameof(HasRecent));
+                    UpdateRecent();
+                })
+            };
+            Host.RecentMenu.Items.Add(clearRecent);
+
             Settings.Default.Save();
         }
 
