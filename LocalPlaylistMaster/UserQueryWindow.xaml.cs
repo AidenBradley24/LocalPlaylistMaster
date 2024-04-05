@@ -33,5 +33,11 @@ namespace LocalPlaylistMaster
             TextBox textBox = (TextBox)sender;
             model.QueryChanged(textBox);
         }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            QueryBox.Focus();
+            QueryBox.SelectAll();
+        }
     }
 }

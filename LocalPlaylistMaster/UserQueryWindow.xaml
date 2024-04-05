@@ -7,13 +7,14 @@
         d:DataContext="{d:DesignInstance Type=localplaylistmaster:UserQueryModel}"
         xmlns:localplaylistmasterbackend="clr-namespace:LocalPlaylistMaster.Backend;assembly=LocalPlaylistMaster.Backend"
         mc:Ignorable="d"
-        Title="Edit Query" Height="250" Width="420" ResizeMode="NoResize">
+        Title="Edit Query" Height="250" Width="420" ResizeMode="NoResize"
+        Loaded="Window_Loaded">
     <DockPanel>
         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
             <Rectangle Height="10"/>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Query:" Width="100"/>
-                <TextBox Text="{Binding Query, Mode=TwoWay}" Width="280" Height="100" 
+                <TextBox x:Name="QueryBox" Text="{Binding Query, Mode=TwoWay}" Width="280" Height="100" 
                          HorizontalAlignment="Left" AcceptsReturn="False" AcceptsTab="False"
                          TextChanged="TextBox_TextChanged"/>        
             </StackPanel>

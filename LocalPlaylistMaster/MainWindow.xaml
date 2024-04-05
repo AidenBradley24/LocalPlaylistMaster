@@ -30,6 +30,10 @@
             </Style.Triggers>
         </Style>
     </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EditFilterCommand}"/>
+        <KeyBinding Key="Esc" Command="{Binding ClearSelectionCommand}"/>
+    </Window.InputBindings>
     <Grid>
         <DockPanel LastChildFill = "True">
             <Menu DockPanel.Dock="Top">

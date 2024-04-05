@@ -147,6 +147,7 @@ namespace LocalPlaylistMaster.Backend
             string query = sb.ToString();
             command.CommandText = query;
             await command.ExecuteNonQueryAsync();
+            InvalidateTrackCount();
         }
 
         public async Task<int> IngestPlaylist(Playlist playlist)
@@ -683,6 +684,7 @@ namespace LocalPlaylistMaster.Backend
 
                 reporter.Report((ReportType.DetailText, "updating database"));
                 await IngestTracks(fetchedTracks);
+                fetchedRemote.TrackCount += manager.ExistingRemote.TrackCount;
                 await UpdateRemote(fetchedRemote, manager.ExistingRemote);
                 await GrabIds(fetchedTracks);
 

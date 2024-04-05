@@ -33,7 +33,7 @@ namespace LocalPlaylistMaster.Backend.Playlist_Files
                 string title = track.Name;
                 string creator = track.Artists;
                 string album = track.Album;
-                int duration = TimeSpan.FromSeconds(track.TimeInSeconds).Milliseconds;
+                int duration = (int)TimeSpan.FromSeconds(track.TimeInSeconds).TotalMilliseconds;
 
                 XElement trackElement = new(ns + "track");
                 trackElement.Add(new XElement(ns + "location", location),

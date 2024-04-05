@@ -253,6 +253,7 @@ namespace LocalPlaylistMaster
 
         public ICommand EditFilterCommand { get; }
         public ICommand ClearFilterCommand { get; }
+        public ICommand ClearSelectionCommand { get; }
 
         public ICommand ExportSelectedPlaylistCommand { get; }
         public ICommand RollbackCommand { get; }
@@ -293,6 +294,19 @@ namespace LocalPlaylistMaster
 
             EditFilterCommand = new RelayCommand(EditFilter, HasDb);
             ClearFilterCommand = new RelayCommand(ClearFilter, HasDb);
+            ClearSelectionCommand = new RelayCommand(() =>
+            {
+                if (propertyManager?.PendingChanges ?? false)
+                {
+                    var result = MessageBox.Show("There are pending changes. Do you want to disgard?", "Confirm", MessageBoxButton.YesNo);
+                    if (result == MessageBoxResult.No)
+                    {
+                        return;
+                    }
+                }
+                ClearSelection();
+            },
+            () => manager != null && propertyManager != null);
 
             ExportSelectedPlaylistCommand = new RelayCommand(ExportSelectedPlaylist,
                 () => manager != null && EditingPlaylist);
@@ -487,13 +501,11 @@ namespace LocalPlaylistMaster
         public void DisplaySelection<T>(IEnumerable<T> items)
         {
             if (ignoreSelection) return;
-
             if (propertyManager?.PendingChanges ?? false)
             {
                 var result = MessageBox.Show("There are pending changes. Do you want to disgard?", "Confirm", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.No)
                 {
-                    //ClearSelection();
                     return;
                 }
             }
@@ -953,8 +965,11 @@ namespace LocalPlaylistMaster
         {
             AssertDb();
             if (HasPendingChanges()) return;
-
-            UserQueryWindow window = new(trackUserQuery);
+            UserQueryWindow window = new(trackUserQuery)
+            {
+                Owner = Host,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
             bool? result = window.ShowDialog();
             if (result != true) return;
             trackUserQuery = window.Result ?? new UserQuery("");
