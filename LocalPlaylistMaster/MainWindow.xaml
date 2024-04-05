@@ -58,7 +58,10 @@
                 </MenuItem>
                 <MenuItem Header="Track Selection" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <MenuItem.Background>lightgray</MenuItem.Background>
-                    <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"/>
+                    <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"
+                        Visibility="{Binding CanRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <MenuItem Header="Undo Remove" Command="{Binding UndoRemoveTrackCommand}"
+                        Visibility="{Binding CanUndoRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     <MenuItem Header="Download Audio" Command="{Binding DownloadSelectedTracksCommand}"/>
                 </MenuItem>
                 <MenuItem Header="Remote Selection" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -89,7 +92,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 
-                <!-- First panel -->
+                <!-- table -->
                 <Border Grid.Column="2" Background="LightBlue" Margin="5">
                     <Grid>
                         <TabControl x:Name="tabControl" SelectionChanged="TabControl_SelectionChanged" PreviewMouseDown="TabControl_PreviewMouseDown">
@@ -101,7 +104,10 @@
                                               SelectionMode="Extended" SelectionUnit="FullRow">
                                         <DataGrid.Resources>
                                             <ContextMenu x:Key="ItemContextMenu">
-                                                <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"/>
+                                                <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"
+                                                    Visibility="{Binding CanRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <MenuItem Header="Undo Remove" Command="{Binding UndoRemoveTrackCommand}"
+                                                    Visibility="{Binding CanUndoRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                 <MenuItem Header="Download Audio" Command="{Binding DownloadSelectedTracksCommand}"/>
                                             </ContextMenu>
                                         </DataGrid.Resources>
@@ -191,9 +197,13 @@
                 </Border>
                 <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
 
-                <!-- Second panel -->
+                <!-- side panel -->
                 <Border Grid.Column="0" Background="LightGray" Margin="5" Width="Auto" MinWidth="350">
                     <DockPanel Visibility="{Binding IsItemSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,5" Background="{Binding NotificationBackgroundColor, Mode=OneWay}" 
+                                    Visibility="{Binding HasNotification, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding NotificationText, Mode=OneWay}" TextAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="15"/>
+                        </StackPanel>
                         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
                             <TextBlock Text="{Binding SelectedText}"/>
                             <Rectangle Height="10"/>

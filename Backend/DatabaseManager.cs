@@ -97,7 +97,6 @@ namespace LocalPlaylistMaster.Backend
         ~DatabaseManager()
         {
             UpdatePlaylistRecord();
-            db?.Close();
         }
 
         public enum Status { ready, error, searching }
@@ -252,6 +251,39 @@ namespace LocalPlaylistMaster.Backend
                 }
                 await task;
                 InvalidateTrackCount();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task UndoRemoveTrack(int trackId)
+        {
+            using SQLiteTransaction transaction = db.BeginTransaction();
+            try
+            {
+                TrackSettings settings;
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    command.CommandText = "SELECT Settings FROM Tracks WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Id", trackId);
+                    using var reader = await command.ExecuteReaderAsync();
+                    await reader.ReadAsync();
+                    settings = (TrackSettings)reader.GetInt32(0);
+                }
+
+                using (SQLiteCommand command = db.CreateCommand())
+                {
+                    settings &= ~TrackSettings.removeMe;
+                    command.CommandText = "UPDATE Tracks SET Settings = @Settings WHERE Id = @Id";
+                    command.Parameters.AddWithValue("@Settings", (int)settings);
+                    command.Parameters.AddWithValue("@Id", trackId);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
             }
             catch
             {

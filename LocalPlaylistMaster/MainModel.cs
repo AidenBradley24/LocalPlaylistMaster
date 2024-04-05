@@ -111,6 +111,64 @@ namespace LocalPlaylistMaster
             get => Settings.Default.RecentDbs.Count > 0;
         }
 
+        private bool hasNotification = false;
+        public bool HasNotification
+        {
+            get => hasNotification;
+            set
+            {
+                hasNotification = value;
+                OnPropertyChanged(nameof(HasNotification));
+            }
+        }
+
+        private string notificationBackgroundColor = "";
+        public string NotificationBackgroundColor
+        {
+            get => notificationBackgroundColor;
+            set
+            {
+                notificationBackgroundColor = value;
+                OnPropertyChanged(nameof(NotificationBackgroundColor));
+            }
+        }
+
+        private string notificationText = "";
+        public string NotificationText
+        {
+            get => notificationText;
+            set
+            {
+                notificationText = value;
+                OnPropertyChanged(nameof(NotificationText));
+            }
+        }
+
+        private int currentNotificationPriority = 0;
+
+        private bool canRemove = false;
+        public bool CanRemove
+        {
+            get => canRemove;
+            set
+            {
+                canRemove = value;
+                OnPropertyChanged(nameof(CanRemove));
+                OnPropertyChanged(nameof(CanUndoRemove));
+            }
+        }
+
+        public bool CanUndoRemove
+        {
+            get => !canRemove;
+            set
+            {
+                canRemove = !value;
+                OnPropertyChanged(nameof(CanRemove));
+                OnPropertyChanged(nameof(CanUndoRemove));
+            }
+        }
+
         #region Edit Records Properties
 
         CollectionPropertyManager? propertyManager;
@@ -239,6 +297,7 @@ namespace LocalPlaylistMaster
         public ICommand RemoveTrackSelectionFromDbCommand { get; }
         public ICommand RemoveRemoteSelectionFromDbCommand { get; }
         public ICommand RemovePlaylistSelectionFromDbCommand { get; }
+        public ICommand UndoRemoveTrackCommand { get; }
 
         public ICommand FetchRemoteSelectionCommand { get; }
         public ICommand DownloadRemoteSelectionCommand { get; }
@@ -276,6 +335,8 @@ namespace LocalPlaylistMaster
                 () => manager != null && EditingRemote);
             RemovePlaylistSelectionFromDbCommand = new RelayCommand(RemotePlaylistSelectionFromDb,
                 () => manager != null && EditingPlaylist);
+            UndoRemoveTrackCommand = new RelayCommand(UndoRemoveTrackFromDb, 
+                () => manager != null && EditingTrack);
 
             FetchRemoteSelectionCommand = new RelayCommand(FetchRemoteSelection,
                 () => manager != null && EditingRemote);
@@ -290,7 +351,7 @@ namespace LocalPlaylistMaster
             DownloadAllCommand = new RelayCommand(DownloadAll, HasDb);
             SyncNewCommand = new RelayCommand(SyncNew, HasDb);
             DownloadSelectedTracksCommand = new RelayCommand(DownloadSelectedTracks,
-                () => manager != null && EditingTrack);
+                () => manager != null && EditingTrack && !CanUndoRemove);
 
             EditFilterCommand = new RelayCommand(EditFilter, HasDb);
             ClearFilterCommand = new RelayCommand(ClearFilter, HasDb);
@@ -393,6 +454,7 @@ namespace LocalPlaylistMaster
 
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
+            ClearNotification();
         }
 
         public void RefreshRemotes()
@@ -510,6 +572,8 @@ namespace LocalPlaylistMaster
                 }
             }
 
+            ClearNotification();
+
             if (items is IEnumerable<Track> tracks) DisplayTracksEdit(tracks);
             else if (items is IEnumerable<Remote> remotes) DisplayRemotesEdit(remotes);
             else if (items is IEnumerable<Playlist> playlists) DisplayPlaylistsEdit(playlists);
@@ -538,6 +602,7 @@ namespace LocalPlaylistMaster
             }
             IsItemSelected = false;
             ignoreSelection = false;
+            ClearNotification();
         }
 
         private void DisplayTracksEdit(IEnumerable<Track> trackSelection)
@@ -558,6 +623,34 @@ namespace LocalPlaylistMaster
             foreach (string edit in EDIT_NAMES)
             {
                 OnPropertyChanged(edit);
+            }
+
+            if(trackSelection.Count() == 1)
+            {
+                Track track = trackSelection.First();
+                CanRemove = true;
+                if (track.Settings.HasFlag(TrackSettings.removeMe))
+                {
+                    CanUndoRemove = true;
+                    ShowNotification(5, "This track is marked for removal", "red");
+                }
+                else if (!track.Settings.HasFlag(TrackSettings.downloaded))
+                {
+                    ShowNotification(1, "This track is not downloaded", "orange");
+                }
+                return;
+            }
+
+            foreach (Track track in trackSelection)
+            {
+                if (track.Settings.HasFlag(TrackSettings.removeMe))
+                {
+                    ShowNotification(5, "One or more selected tracks are marked for removal", "red");
+                }
+                else if (!track.Settings.HasFlag(TrackSettings.downloaded))
+                {
+                    ShowNotification(1, "One or more selected tracks are not downloaded", "orange");
+                }
             }
         }
 
@@ -854,6 +947,27 @@ namespace LocalPlaylistMaster
             RefreshAll();
         }
 
+        public async void UndoRemoveTrackFromDb()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Track)) return;
+            if (HasPendingChanges()) return;
+
+            await TrackedTask(async (reporter) =>
+            {
+                reporter.Report((ProgressModel.ReportType.TitleText, "Undo deleting tracks"));
+                int i = 0;
+                IEnumerable<Track> tracks = propertyManager.GetCollection<Track>();
+                foreach (Track track in tracks)
+                {
+                    reporter.Report((ProgressModel.ReportType.Progress, (int)((float)i++ / selectedCount * 100)));
+                    await manager.UndoRemoveTrack(track.Id);
+                }
+            });
+
+            RefreshAll();
+        }
+
         public async void RemoveRemoteSelectionFromDb()
         {
             var manager = AssertDb();
@@ -1016,6 +1130,24 @@ namespace LocalPlaylistMaster
 
             ExportPlaylistWindow window = new(propertyManager.GetCollection<Playlist>().First(), manager);
             window.ShowDialog();
+        }
+        #endregion
+
+        #region Notifications
+        private void ShowNotification(int priority, string text, string color)
+        {
+            if(priority > currentNotificationPriority)
+            {
+                currentNotificationPriority = priority;
+                NotificationText = text;
+                NotificationBackgroundColor = color;
+                HasNotification = true;
+            }
+        }
+        private void ClearNotification()
+        {
+            HasNotification = false;
+            currentNotificationPriority = 0;
         }
         #endregion
     }
