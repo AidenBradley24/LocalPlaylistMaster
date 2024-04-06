@@ -181,20 +181,40 @@
                                 </Grid>
                             </TabItem>
                         </TabControl>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                            <Button Margin="10" Command="{Binding PreviousPageCommand}">
-                                <Image Source="Icons/icon_prev.png" Width="20"/>
-                            </Button>
-                            <Button Margin="10" Command="{Binding NextPageCommand}">
-                                <Image Source="Icons/icon_next.png" Width="20"/>
-                            </Button>
-                        </StackPanel>
+                        <Border BorderThickness="1" BorderBrush="Gray" Background="WhiteSmoke" Height="20" VerticalAlignment="Bottom" Width="160">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding FirstPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanPrevious, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_prev_to_end.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding PreviousPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanPrevious, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_prev.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding NextPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanNext, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_next.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding LastPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanNext, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_next_to_end.png"/>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Border>
                 <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
 
                 <!-- side panel -->
-                <Border Grid.Column="0" Background="LightGray" Margin="5" Width="Auto" MinWidth="350">
+                <Border Grid.Column="0" Background="LightGray" Margin="5" Width="Auto" MinWidth="400">
                     <DockPanel Visibility="{Binding IsItemSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel DockPanel.Dock="Top" Margin="0,5" Background="{Binding NotificationBackgroundColor, Mode=OneWay}" 
                                     Visibility="{Binding HasNotification, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">

@@ -23,6 +23,8 @@ namespace LocalPlaylistMaster.Backend
         private int trackCount = -1;
         private int remoteCount = -1;
         private int playlistCount = -1;
+        private int filteredTrackCount = -1;
+        private UserQuery filteredCountQuery;
         public const int NO_REMOTE = -1;
 
         public DatabaseManager(string dirPath, DependencyProcessManager dependencies, bool newDb)
@@ -1145,7 +1147,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddRange(query.Parameters);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<Track> tracks = new();
+            List<Track> tracks = [];
 
             while (await reader.ReadAsync())
             {
@@ -1165,6 +1167,24 @@ namespace LocalPlaylistMaster.Backend
             }
 
             return tracks;
+        }
+
+        public int CountUserQuery(UserQuery query)
+        {
+            if (query == filteredCountQuery) return filteredTrackCount;
+            filteredCountQuery = query;
+            if (string.IsNullOrWhiteSpace(query.Sql))
+            {
+                filteredTrackCount = GetTrackCount();
+            }
+            else
+            {
+                using SQLiteCommand command = db.CreateCommand();
+                command.CommandText = $"SELECT COUNT(*) FROM Tracks WHERE {query.Sql}";
+                command.Parameters.AddRange(query.Parameters);
+                filteredTrackCount = Convert.ToInt32(command.ExecuteScalar());
+            }
+            return filteredTrackCount;
         }
 
         internal DirectoryInfo GetAudioDir()

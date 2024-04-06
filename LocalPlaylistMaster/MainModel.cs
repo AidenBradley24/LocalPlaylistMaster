@@ -104,6 +104,7 @@ namespace LocalPlaylistMaster
         private int currentTrackOffset = 0;
         private int currentRemoteOffset = 0;
         private int currentPlaylistOffset = 0;
+        private int filteredTrackCount = 0;
         private const int MAX_RECENT = 5;
 
         public bool HasRecent
@@ -122,7 +123,7 @@ namespace LocalPlaylistMaster
             }
         }
 
-        private string notificationBackgroundColor = "";
+        private string notificationBackgroundColor = "green";
         public string NotificationBackgroundColor
         {
             get => notificationBackgroundColor;
@@ -167,6 +168,16 @@ namespace LocalPlaylistMaster
                 OnPropertyChanged(nameof(CanRemove));
                 OnPropertyChanged(nameof(CanUndoRemove));
             }
+        }
+
+        public bool CanNext
+        {
+            get => CanNavigateNext();
+        }
+
+        public bool CanPrevious
+        {
+            get => CanNavigatePrevious();
         }
 
         #region Edit Records Properties
@@ -315,6 +326,9 @@ namespace LocalPlaylistMaster
 
         public ICommand PreviousPageCommand { get; }
         public ICommand NextPageCommand { get; }
+        public ICommand FirstPageCommand { get; }
+        public ICommand LastPageCommand { get; }
+
         public ICommand FetchAllCommand { get; }
         public ICommand DownloadAllCommand { get; }
         public ICommand SyncNewCommand { get; }
@@ -357,6 +371,9 @@ namespace LocalPlaylistMaster
 
             PreviousPageCommand = new RelayCommand(PreviousPage, CanNavigatePrevious);
             NextPageCommand = new RelayCommand(NextPage, CanNavigateNext);
+            FirstPageCommand = new RelayCommand(FirstPage, CanNavigatePrevious);
+            LastPageCommand = new RelayCommand(LastPage, CanNavigateNext);
+
             FetchAllCommand = new RelayCommand(FetchAll, HasDb);
             DownloadAllCommand = new RelayCommand(DownloadAll, HasDb);
             SyncNewCommand = new RelayCommand(SyncNew, HasDb);
@@ -453,6 +470,10 @@ namespace LocalPlaylistMaster
                 return;
             }
 
+            filteredTrackCount = Manager.CountUserQuery(trackUserQuery);
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
+
             var task = Manager.ExecuteUserQuery(trackUserQuery, VIEW_SIZE, currentTrackOffset);
             task.Wait(); // TODO add loading bar
             Tracks = new ObservableCollection<Track>(task.Result);
@@ -461,7 +482,6 @@ namespace LocalPlaylistMaster
             remoteReferenceTask.Wait();
             RemoteReference = remoteReferenceTask.Result;
             RemoteReference.Add(-1, "NONE");
-
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
             ClearNotification();
@@ -481,6 +501,8 @@ namespace LocalPlaylistMaster
             Remotes = new ObservableCollection<Remote>(task.Result);
             Host.remoteGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Remotes));
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
         }
 
         public void RefreshPlaylists()
@@ -497,6 +519,8 @@ namespace LocalPlaylistMaster
             Playlists = new ObservableCollection<Playlist>(task.Result);
             Host.playlistGrid.SelectedItem = null;
             OnPropertyChanged(nameof(Playlists));
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
         }
 
         private void PreviousPage()
@@ -516,6 +540,9 @@ namespace LocalPlaylistMaster
                     RefreshPlaylists();
                     break;
             }
+
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
         }
 
         private bool CanNavigatePrevious()
@@ -548,19 +575,71 @@ namespace LocalPlaylistMaster
                     RefreshPlaylists();
                     break;
             }
+
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
         }
 
         private bool CanNavigateNext()
         {
             if (Manager == null) return false;
 
+            Trace.WriteLine(filteredTrackCount);
             return Host.CurrentTab.Name switch
             {
-                "tracksTab" => currentTrackOffset + VIEW_SIZE < Manager.GetTrackCount(),
+                "tracksTab" => currentTrackOffset + VIEW_SIZE < filteredTrackCount,
                 "remotesTab" => currentRemoteOffset + VIEW_SIZE < Manager.GetRemoteCount(),
                 "playlistsTab" => currentPlaylistOffset + VIEW_SIZE < Manager.GetPlaylistCount(),
                 _ => true,
             };
+        }
+
+        private void FirstPage()
+        {
+            if (Manager == null) return;
+
+            switch (Host.CurrentTab.Name)
+            {
+                case "tracksTab":
+                    currentTrackOffset = 0;
+                    RefreshTracks();
+                    break;
+                case "remotesTab":
+                    currentRemoteOffset = 0;
+                    RefreshTracks();
+                    break;
+                case "playlistsTab":
+                    currentPlaylistOffset = 0;
+                    RefreshPlaylists();
+                    break;
+            }
+
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
+        }
+
+        private void LastPage()
+        {
+            if (Manager == null) return;
+
+            switch (Host.CurrentTab.Name)
+            {
+                case "tracksTab":
+                    currentTrackOffset = (filteredTrackCount / VIEW_SIZE) * VIEW_SIZE;
+                    RefreshTracks();
+                    break;
+                case "remotesTab":
+                    currentRemoteOffset = (Manager.GetRemoteCount() / VIEW_SIZE) * VIEW_SIZE;
+                    RefreshTracks();
+                    break;
+                case "playlistsTab":
+                    currentPlaylistOffset = (Manager.GetPlaylistCount() / VIEW_SIZE) * VIEW_SIZE;
+                    RefreshPlaylists();
+                    break;
+            }
+
+            OnPropertyChanged(nameof(CanNext));
+            OnPropertyChanged(nameof(CanPrevious));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -1087,7 +1166,7 @@ namespace LocalPlaylistMaster
 
         public void EditFilter()
         {
-            AssertDb();
+            var manager = AssertDb();
             if (HasPendingChanges()) return;
             UserQueryWindow window = new(trackUserQuery)
             {
@@ -1098,6 +1177,7 @@ namespace LocalPlaylistMaster
             if (result != true) return;
             trackUserQuery = window.Result ?? new UserQuery("");
             currentTrackOffset = 0;
+            filteredTrackCount = manager.CountUserQuery(trackUserQuery);
             RefreshTracks();
         }
 
