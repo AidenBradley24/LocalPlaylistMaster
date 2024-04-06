@@ -124,10 +124,6 @@
                                             <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}" />
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
-                                        <Button Content="Previous" Margin="5" Command="{Binding PreviousPageCommand}"/>
-                                        <Button Content="Next" Margin="5" Command="{Binding NextPageCommand}"/>
-                                    </StackPanel>
                                 </Grid>
                             </TabItem>
                             <TabItem Name="remotesTab" Header="Remotes">
@@ -157,10 +153,6 @@
                                             <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
-                                        <Button Content="Previous" Margin="5" Command="{Binding PreviousPageCommand}"/>
-                                        <Button Content="Next" Margin="5" Command="{Binding NextPageCommand}"/>
-                                    </StackPanel>
                                 </Grid>
                             </TabItem>
                             <TabItem Name="playlistsTab" Header="Playlists">
@@ -186,13 +178,17 @@
                                             <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10">
-                                        <Button Content="Previous" Margin="5" Command="{Binding PreviousPageCommand}"/>
-                                        <Button Content="Next" Margin="5" Command="{Binding NextPageCommand}"/>
-                                    </StackPanel>
                                 </Grid>
                             </TabItem>
                         </TabControl>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                            <Button Margin="10" Command="{Binding PreviousPageCommand}">
+                                <Image Source="Icons/icon_prev.png" Width="20"/>
+                            </Button>
+                            <Button Margin="10" Command="{Binding NextPageCommand}">
+                                <Image Source="Icons/icon_next.png" Width="20"/>
+                            </Button>
+                        </StackPanel>
                     </Grid>
                 </Border>
                 <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
