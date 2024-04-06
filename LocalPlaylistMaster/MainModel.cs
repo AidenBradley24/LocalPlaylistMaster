@@ -269,6 +269,16 @@ namespace LocalPlaylistMaster
             }
         }
 
+        public int EditRating
+        {
+            get => (int?)(propertyManager?.GetValue(nameof(EditRating))) ?? -1;
+            set
+            {
+                propertyManager?.SetValue(nameof(EditRating), value);
+                OnPropertyChanged(nameof(EditRating));
+            }
+        }
+
         public bool? EditLocked
         {
             get => (bool?)(propertyManager?.GetValue(nameof(EditLocked)));
@@ -616,8 +626,8 @@ namespace LocalPlaylistMaster
             IsItemSelected = true;
             EditingTrack = true;
 
-            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLocked), nameof(EditArtists), nameof(EditAlbum)];
-            string[] ACTUAL_NAMES = [nameof(Track.Name), nameof(Track.Description), nameof(Track.Locked), nameof(Track.Artists), nameof(Track.Album)];
+            string[] EDIT_NAMES = [nameof(EditName), nameof(EditDescription), nameof(EditLocked), nameof(EditArtists), nameof(EditAlbum), nameof(EditRating)];
+            string[] ACTUAL_NAMES = [nameof(Track.Name), nameof(Track.Description), nameof(Track.Locked), nameof(Track.Artists), nameof(Track.Album), nameof(Track.Rating)];
 
             propertyManager = new(typeof(Track), trackSelection, EDIT_NAMES, ACTUAL_NAMES);
             foreach (string edit in EDIT_NAMES)

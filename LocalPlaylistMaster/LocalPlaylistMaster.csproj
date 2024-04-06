@@ -20,6 +20,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Icons\icon_half_star.png" />
+    <None Remove="Icons\icon_next.png" />
+    <None Remove="Icons\icon_next_to_end.png" />
+    <None Remove="Icons\icon_no_rating_star.png" />
+    <None Remove="Icons\icon_no_star.png" />
+    <None Remove="Icons\icon_prev.png" />
+    <None Remove="Icons\icon_prev_to_end.png" />
+    <None Remove="Icons\icon_whole_star.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -29,6 +40,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Backend\LocalPlaylistMaster.Backend.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Icons\icon_half_star.png" />
+    <Resource Include="Icons\icon_next.png" />
+    <Resource Include="Icons\icon_next_to_end.png" />
+    <Resource Include="Icons\icon_no_rating_star.png" />
+    <Resource Include="Icons\icon_no_star.png" />
+    <Resource Include="Icons\icon_prev.png" />
+    <Resource Include="Icons\icon_prev_to_end.png" />
+    <Resource Include="Icons\icon_whole_star.png" />
   </ItemGroup>
 
   <ItemGroup>

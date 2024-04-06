@@ -1,0 +1,24 @@
+﻿<UserControl x:Class="LocalPlaylistMaster.RatingControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:LocalPlaylistMaster"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="200">
+    <UserControl.Resources>
+        <BitmapImage x:Key="WholeStarIcon" UriSource="Icons/icon_whole_star.png"/>
+        <BitmapImage x:Key="HalfStarIcon" UriSource="Icons/icon_half_star.png"/>
+        <BitmapImage x:Key="NoStarIcon" UriSource="Icons/icon_no_star.png"/>
+        <BitmapImage x:Key="NoRatingStarIcon" UriSource="Icons/icon_no_rating_star.png"/>
+    </UserControl.Resources>
+    <Grid>
+        <StackPanel x:Name="StarPanel" Orientation="Horizontal" MouseMove="StarPanel_MouseMove" MouseLeave="StarPanel_MouseLeave" MouseDown="StarPanel_MouseDown">
+            <Image Source="{Binding Star1, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+            <Image Source="{Binding Star2, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+            <Image Source="{Binding Star3, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+            <Image Source="{Binding Star4, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+            <Image Source="{Binding Star5, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

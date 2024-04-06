@@ -206,6 +206,10 @@
                         </StackPanel>
                         <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
                             <TextBlock Text="{Binding SelectedText}"/>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Rating:" Width="100"/>
+                                <localplaylistmaster:RatingControl Rating="{Binding EditRating, Mode=TwoWay}"/>
+                            </StackPanel>
                             <Rectangle Height="10"/>
                             <StackPanel Orientation="Horizontal" Margin="10">
                                 <Label Content="Name:" Width="100"/>
