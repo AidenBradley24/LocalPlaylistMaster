@@ -269,9 +269,9 @@ namespace LocalPlaylistMaster
             }
         }
 
-        public int EditRating
+        public int? EditRating
         {
-            get => (int?)(propertyManager?.GetValue(nameof(EditRating))) ?? -1;
+            get => (int?)(propertyManager?.GetValue(nameof(EditRating)));
             set
             {
                 propertyManager?.SetValue(nameof(EditRating), value);

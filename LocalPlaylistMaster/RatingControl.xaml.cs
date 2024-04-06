@@ -9,78 +9,34 @@ namespace LocalPlaylistMaster
     /// <summary>
     /// Interaction logic for RatingControl.xaml
     /// </summary>
-    public partial class RatingControl : UserControl, INotifyPropertyChanged
+    public partial class RatingControl : UserControl
     {
         public static readonly DependencyProperty RatingProperty = DependencyProperty.Register(
-            "Rating", typeof(int), typeof(RatingControl), new PropertyMetadata(-1));
+            "Rating", typeof(int?), typeof(RatingControl), new PropertyMetadata(-1, new PropertyChangedCallback(OnRatingPropertyChanged)));
 
-        public int Rating
+        private static void OnRatingPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            get { return (int)GetValue(RatingProperty); }
-            set { SetValue(RatingProperty, value); }
+            RatingControl ratingControl = (RatingControl)d;
+            ratingControl.UpdatePanel();
         }
 
-        #region Stars
-        private readonly ImageSource[] stars;
-        public ImageSource Star1
+        public int? Rating
         {
-            get => stars[0];
-            set
-            {
-                stars[0] = value;
-                OnPropertyChanged(nameof(Star1));
-            }
+            get => (int?)GetValue(RatingProperty);
+            set => SetValue(RatingProperty, value);
         }
-        public ImageSource Star2
-        {
-            get => stars[1];
-            set
-            {
-                stars[1] = value;
-                OnPropertyChanged(nameof(Star2));
-            }
-        }
-        public ImageSource Star3
-        {
-            get => stars[2];
-            set
-            {
-                stars[2] = value;
-                OnPropertyChanged(nameof(Star3));
-            }
-        }
-        public ImageSource Star4
-        {
-            get => stars[3];
-            set
-            {
-                stars[3] = value;
-                OnPropertyChanged(nameof(Star4));
-            }
-        }
-        public ImageSource Star5
-        {
-            get => stars[4];
-            set
-            {
-                stars[4] = value;
-                OnPropertyChanged(nameof(Star5));
-            }
-        }
-        #endregion
+
+        private readonly Image[] stars;
 
         public RatingControl()
         {
             InitializeComponent();
-            DataContext = this;
-            stars = new ImageSource[5];
-            Star1 = GetImage(Mode.whole);
-            Star2 = GetImage(Mode.whole);
-            Star3 = GetImage(Mode.whole);
-            Star4 = GetImage(Mode.whole);
-            Star5 = GetImage(Mode.whole);
-
-            FillStars(3);
+            stars = new Image[5];
+            stars[0] = Star1;
+            stars[1] = Star2;
+            stars[2] = Star3;
+            stars[3] = Star4;
+            stars[4] = Star5;
         }
 
         private ImageSource GetImage(Mode mode)
@@ -95,41 +51,48 @@ namespace LocalPlaylistMaster
         }
         public enum Mode { whole, half, no, nr }
 
-        private void FillStars(int rating)
+        private void FillStars(int? rating)
         {
+            if(rating == null)
+            {
+                Message.Text = "Varied";
+                rating = -1;
+            }
+            else if (rating < 0)
+            {
+                Message.Text = "Unrated";
+            }
+            else
+            {
+                Message.Text = "";
+            }
+
             for (int i = 0; i < stars.Length; i++)
             {
                 if(rating < 0)
                 {
-                    stars[i] = GetImage(Mode.nr);
+                    stars[i].Source = GetImage(Mode.nr);
                 }
                 else if(rating == 0)
                 {
-                    stars[i] = GetImage(Mode.no);
+                    stars[i].Source = GetImage(Mode.no);
                 }
                 else if(rating == 1)
                 {
-                    stars[i] = GetImage(Mode.half);
+                    stars[i].Source = GetImage(Mode.half);
                     rating--;
                 }
                 else
                 {
-                    stars[i] = GetImage(Mode.whole);
+                    stars[i].Source = GetImage(Mode.whole);
                     rating -= 2;
                 }
             }
-
-            OnPropertyChanged(nameof(Star1));
-            OnPropertyChanged(nameof(Star2));
-            OnPropertyChanged(nameof(Star3));
-            OnPropertyChanged(nameof(Star4));
-            OnPropertyChanged(nameof(Star5));
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected virtual void OnPropertyChanged(string propertyName)
+        private void UpdatePanel()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            FillStars(Rating);
         }
 
         private void StarPanel_MouseMove(object sender, MouseEventArgs e)

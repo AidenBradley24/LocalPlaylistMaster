@@ -14,11 +14,12 @@
     </UserControl.Resources>
     <Grid>
         <StackPanel x:Name="StarPanel" Orientation="Horizontal" MouseMove="StarPanel_MouseMove" MouseLeave="StarPanel_MouseLeave" MouseDown="StarPanel_MouseDown">
-            <Image Source="{Binding Star1, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
-            <Image Source="{Binding Star2, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
-            <Image Source="{Binding Star3, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
-            <Image Source="{Binding Star4, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
-            <Image Source="{Binding Star5, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="20" Height="20"/>
+            <Image x:Name="Star1" Width="20" Height="20"/>
+            <Image x:Name="Star2" Width="20" Height="20"/>
+            <Image x:Name="Star3" Width="20" Height="20"/>
+            <Image x:Name="Star4" Width="20" Height="20"/>
+            <Image x:Name="Star5" Width="20" Height="20"/>
+            <TextBlock x:Name="Message"/>
         </StackPanel>
     </Grid>
 </UserControl>
