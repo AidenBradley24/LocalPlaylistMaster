@@ -1191,5 +1191,10 @@ namespace LocalPlaylistMaster.Backend
         {
             return audioDir;
         }
+
+        public FileInfo GetTrackAudio(Track track)
+        {
+            return new FileInfo(Path.Combine(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+        }
     }
 }

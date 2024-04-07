@@ -340,6 +340,7 @@ namespace LocalPlaylistMaster
 
         public ICommand ExportSelectedPlaylistCommand { get; }
         public ICommand RollbackCommand { get; }
+        public ICommand EditAudioTrackCommand { get; }
 
         public MainModel(MainWindow host)
         {
@@ -399,8 +400,16 @@ namespace LocalPlaylistMaster
             ExportSelectedPlaylistCommand = new RelayCommand(ExportSelectedPlaylist,
                 () => manager != null && EditingPlaylist);
             RollbackCommand = new RelayCommand(Rollback, () => EditingTrack);
+            EditAudioTrackCommand = new RelayCommand(EditAudioTrack, () =>
+            {
+                if (manager == null || !EditingTrack) return false;
+                var tracks = propertyManager?.GetCollection<Track>();
+                if(tracks?.Count() != 1) return false;
+                if (tracks.First().Downloaded) return true;
+                return false;
+            });
 
-            if(Settings.Default.RecentDbs == null) Settings.Default.RecentDbs = [];
+            if (Settings.Default.RecentDbs == null) Settings.Default.RecentDbs = [];
             UpdateRecent();
         }
 
@@ -470,6 +479,8 @@ namespace LocalPlaylistMaster
                 return;
             }
 
+            Host.Cursor = Cursors.Wait;
+
             filteredTrackCount = Manager.CountUserQuery(trackUserQuery);
             OnPropertyChanged(nameof(CanNext));
             OnPropertyChanged(nameof(CanPrevious));
@@ -485,6 +496,8 @@ namespace LocalPlaylistMaster
             Host.trackGrid.SelectedItems.Clear();
             OnPropertyChanged(nameof(Tracks));
             ClearNotification();
+
+            Host.Cursor = Cursors.Arrow;
         }
 
         public void RefreshRemotes()
@@ -495,6 +508,8 @@ namespace LocalPlaylistMaster
                 return;
             }
 
+            Host.Cursor = Cursors.Wait;
+
             var task = Manager.GetRemotes(VIEW_SIZE, currentRemoteOffset);
             task.Wait(); // TODO add loading bar
 
@@ -503,6 +518,8 @@ namespace LocalPlaylistMaster
             OnPropertyChanged(nameof(Remotes));
             OnPropertyChanged(nameof(CanNext));
             OnPropertyChanged(nameof(CanPrevious));
+
+            Host.Cursor = Cursors.Arrow;
         }
 
         public void RefreshPlaylists()
@@ -513,6 +530,8 @@ namespace LocalPlaylistMaster
                 return;
             }
 
+            Host.Cursor = Cursors.Wait;
+
             var task = Manager.GetPlaylists(VIEW_SIZE, currentPlaylistOffset);
             task.Wait(); // TODO add loading bar
 
@@ -521,6 +540,8 @@ namespace LocalPlaylistMaster
             OnPropertyChanged(nameof(Playlists));
             OnPropertyChanged(nameof(CanNext));
             OnPropertyChanged(nameof(CanPrevious));
+
+            Host.Cursor = Cursors.Arrow;
         }
 
         private void PreviousPage()
@@ -846,7 +867,7 @@ namespace LocalPlaylistMaster
                 EditDescription = description;
                 EditArtists = artists;
                 EditAlbum = album;
-                // TODO edit rating
+                EditRating = rating;
                 return;
             }
 
@@ -1219,6 +1240,17 @@ namespace LocalPlaylistMaster
             if (HasPendingChanges()) return;
 
             ExportPlaylistWindow window = new(propertyManager.GetCollection<Playlist>().First(), manager);
+            window.ShowDialog();
+        }
+
+        public void EditAudioTrack()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Track)) return;
+            if (HasPendingChanges()) return;
+            Track track = propertyManager.GetCollection<Track>().First();
+            if(!track.Downloaded) return;
+            TrackEditWindow window = new(track, manager);
             window.ShowDialog();
         }
         #endregion

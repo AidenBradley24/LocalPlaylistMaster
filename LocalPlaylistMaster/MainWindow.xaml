@@ -273,6 +273,9 @@
                                     <!-- Add more CheckBoxes for additional settings -->
                                 </StackPanel>
                             </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Button Content="Edit Audio Track" Command="{Binding EditAudioTrackCommand}"/>
+                            </StackPanel>
 
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
