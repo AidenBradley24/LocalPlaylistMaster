@@ -22,6 +22,7 @@ namespace LocalPlaylistMaster
             {
                 manager = value;
                 OnPropertyChanged(nameof(DbName));
+                Host.trackPlayer.Db = value;
             }
         }
         private DatabaseManager? manager;
@@ -683,6 +684,7 @@ namespace LocalPlaylistMaster
             }
 
             ClearNotification();
+            Host.trackPlayer.Stop();
 
             if (items is IEnumerable<Track> tracks) DisplayTracksEdit(tracks);
             else if (items is IEnumerable<Remote> remotes) DisplayRemotesEdit(remotes);
@@ -748,10 +750,8 @@ namespace LocalPlaylistMaster
                 {
                     ShowNotification(1, "This track is not downloaded", "orange");
                 }
-                return;
             }
-
-            foreach (Track track in trackSelection)
+            else foreach (Track track in trackSelection)
             {
                 if (track.Settings.HasFlag(TrackSettings.removeMe))
                 {
@@ -761,6 +761,24 @@ namespace LocalPlaylistMaster
                 {
                     ShowNotification(1, "One or more selected tracks are not downloaded", "orange");
                 }
+            }
+
+            if (trackSelection.Count() == 1)
+            {
+                var track = trackSelection.First();
+                if (track.Downloaded)
+                {
+                    Host.trackPlayer.Visibility = Visibility.Visible;
+                    Host.trackPlayer.ChangeTrack(track);
+                }
+                else
+                {
+                    Host.trackPlayer.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                Host.trackPlayer.Visibility = Visibility.Collapsed;
             }
         }
 

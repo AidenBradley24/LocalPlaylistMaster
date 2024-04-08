@@ -273,10 +273,11 @@
                                     <!-- Add more CheckBoxes for additional settings -->
                                 </StackPanel>
                             </StackPanel>
+                            <localplaylistmaster:TrackPlayer x:Name="trackPlayer"
+                                Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Button Content="Edit Audio Track" Command="{Binding EditAudioTrackCommand}"/>
                             </StackPanel>
-
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
                             <Button Command="{Binding RollbackCommand}" Content="Rollback" Padding="20,8" Margin="5" HorizontalAlignment="Left" 
