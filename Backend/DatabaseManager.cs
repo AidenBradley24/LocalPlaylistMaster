@@ -578,7 +578,7 @@ namespace LocalPlaylistMaster.Backend
                     }
 
                     TrackProbe probe = new(audioFile, track, dependencyProcessManager);
-                    await probe.FindDuration();
+                    await probe.MatchDuration();
 
                     track.Downloaded = true;
                     command.Parameters["@Id"].Value = track.Id;
@@ -660,7 +660,7 @@ namespace LocalPlaylistMaster.Backend
                     };
 
                     TrackProbe probe = new(audioFile, track, dependencyProcessManager);
-                    await probe.FindDuration();
+                    await probe.MatchDuration();
 
                     track.Downloaded = true;
                     command.Parameters["@Id"].Value = track.Id;
@@ -744,7 +744,7 @@ namespace LocalPlaylistMaster.Backend
                     }
 
                     TrackProbe probe = new(audioFile, track, dependencyProcessManager);
-                    await probe.FindDuration();
+                    await probe.MatchDuration();
 
                     track.Downloaded = true;
                     command.Parameters["@Id"].Value = track.Id;

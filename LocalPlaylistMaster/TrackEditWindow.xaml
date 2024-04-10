@@ -8,12 +8,11 @@
         Title="TrackEditWindow" Height="450" Width="800">
     <Grid>
         <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom">
-            <MediaElement x:Name="mediaElement" LoadedBehavior="Manual" MediaOpened="MediaElement_MediaOpened"/>
-            <Slider x:Name="timelineSlider" Minimum="0" ValueChanged="TimelineSlider_ValueChanged" Margin="20"
-                    PreviewMouseDown="TimelineSlider_PreviewMouseDown"/>
-            <StackPanel HorizontalAlignment="Left">
-                <Button Content="Play" Click="TogglePlay" Width="50"/>
-            </StackPanel>
+            <Grid>
+                <local:TrackPlayer x:Name="trackPlayer"/>
+                <Slider Margin="50"/>
+                <TextBlock x:Name="startText" Text="| Start" FontWeight="ExtraBold" Width="100" Height="20" Margin="52,25,603,-25" />
+            </Grid>
         </StackPanel>
     </Grid>
 </Window>

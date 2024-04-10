@@ -1268,7 +1268,7 @@ namespace LocalPlaylistMaster
             if (HasPendingChanges()) return;
             Track track = propertyManager.GetCollection<Track>().First();
             if(!track.Downloaded) return;
-            TrackEditWindow window = new(track, manager);
+            TrackEditWindow window = new(track, manager, Host.dependencyProcessManager);
             window.ShowDialog();
         }
         #endregion

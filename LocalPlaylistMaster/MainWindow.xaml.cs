@@ -17,7 +17,7 @@ namespace LocalPlaylistMaster
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly DependencyProcessManager dependencyProcessManager;
+        internal readonly DependencyProcessManager dependencyProcessManager;
         public DatabaseManager? DbManager 
         { 
             get => Model.Manager; 

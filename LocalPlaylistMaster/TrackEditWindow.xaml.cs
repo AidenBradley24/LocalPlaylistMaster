@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Windows.Threading;
 using LocalPlaylistMaster.Backend;
 
 namespace LocalPlaylistMaster
@@ -19,71 +8,89 @@ namespace LocalPlaylistMaster
     /// <summary>
     /// Interaction logic for TrackEditWindow.xaml
     /// </summary>
-    public partial class TrackEditWindow : Window
+    public partial class TrackEditWindow : Window, INotifyPropertyChanged
     {
-        private bool isPlaying = false;
         private readonly DatabaseManager manager;
         private readonly Track track;
-        DispatcherTimer timer;
+        private readonly DependencyProcessManager processes;
 
-        public TrackEditWindow(Track track, DatabaseManager manager)
+        private bool changedVolume = false;
+
+        private double volume = 1.0;
+        public double Volume
+        {
+            get => volume;
+            set
+            {
+                volume = value;
+                trackPlayer.mediaElement.Volume = 0.5 * (value - 1) + 0.5;
+                OnPropertyChanged(nameof(Volume));
+                changedVolume = true;
+            }
+        }
+
+        private double startTime;
+        public double StartTime
+        {
+            get => startTime;
+            set
+            {
+                startTime = value;
+                OnPropertyChanged(nameof(StartTime));
+            }
+        }
+
+        private double endTime;
+        public double EndTime
+        {
+            get => endTime;
+            set
+            {
+                endTime = value;
+                OnPropertyChanged(nameof(EndTime));
+            }
+        }
+
+        public TrackEditWindow(Track track, DatabaseManager manager, DependencyProcessManager processes)
         {
             InitializeComponent();
             this.manager = manager;
             this.track = track;
-            mediaElement.Source = new Uri(manager.GetTrackAudio(track).FullName);
-            timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(0.2),
-            };
-            timer.Tick += Timer_Tick;
+            this.processes = processes;
+            trackPlayer.Db = manager;
+            trackPlayer.ChangeTrack(track);
+
+            TrackProbe probe = new(manager.GetTrackAudio(track), track, processes);
+            StartTime = 0.0;
+            EndTime = probe.GetDuration();
         }
 
-        private void Timer_Tick(object? sender, EventArgs e)
+        protected virtual void OnPropertyChanged(string propertyName)
         {
-            Dispatcher.Invoke(() => 
-            {
-                if (mediaElement.NaturalDuration.HasTimeSpan)
-                {
-                    timelineSlider.Value = mediaElement.Position.TotalSeconds;
-                }
-            });
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void TimelineSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
-        }
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        private void TogglePlay(object sender, RoutedEventArgs e)
+        private void Apply()
         {
-            isPlaying = !isPlaying;
-            if (isPlaying)
+            string trackPath = manager.GetTrackAudio(track).FullName;
+            var ffmpeg = processes.CreateFfmpegProcess();
+
+            string args = $"-ss {startTime} -to {endTime} -i {trackPath} ";
+            if (changedVolume)
             {
-                mediaElement.Play();
-                timer.Start();
+                args += $"-filter \"volume={Volume}\" ";
             }
             else
             {
-                mediaElement.Pause();
-                timer.Stop();
+                args += "-c copy ";
             }
-        }
+            args += trackPath;
+            ffmpeg.StartInfo.Arguments = args;
 
-        private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
-        {
-            timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalSeconds;
-        }
-
-        private void TimelineSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            Point position = e.GetPosition(timelineSlider);
-            double value = position.X / timelineSlider.ActualWidth * timelineSlider.Maximum;
-            timelineSlider.Value = value;
-            if (mediaElement != null && mediaElement.NaturalDuration.HasTimeSpan)
-            {
-                mediaElement.Position = TimeSpan.FromSeconds(value);
-            }
+            ffmpeg.Start();
+            ffmpeg.WaitForExit();
         }
     }
 }
