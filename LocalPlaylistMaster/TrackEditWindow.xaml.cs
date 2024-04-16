@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Windows;
+using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
+using System.Windows.Media;
 
 namespace LocalPlaylistMaster
 {
@@ -29,31 +31,37 @@ namespace LocalPlaylistMaster
             }
         }
 
-        private double startTime;
-        public double StartTime
+        private TimeSpan startTime;
+        public TimeSpan StartTime
         {
             get => startTime;
             set
             {
                 startTime = value;
                 OnPropertyChanged(nameof(StartTime));
+                trackPlayer.SetMarkerTime(START_MARKER, value);
             }
         }
 
-        private double endTime;
-        public double EndTime
+        private TimeSpan endTime;
+        public TimeSpan EndTime
         {
             get => endTime;
             set
             {
                 endTime = value;
                 OnPropertyChanged(nameof(EndTime));
+                trackPlayer.SetMarkerTime(END_MARKER, value);
             }
         }
+
+        private const string START_MARKER = "start";
+        public const string END_MARKER = "end";
 
         public TrackEditWindow(Track track, DatabaseManager manager, DependencyProcessManager processes)
         {
             InitializeComponent();
+            DataContext = this;
             this.manager = manager;
             this.track = track;
             this.processes = processes;
@@ -61,8 +69,13 @@ namespace LocalPlaylistMaster
             trackPlayer.ChangeTrack(track);
 
             TrackProbe probe = new(manager.GetTrackAudio(track), track, processes);
-            StartTime = 0.0;
-            EndTime = probe.GetDuration();
+            var startTime = TimeSpan.Zero;
+            var endTime = TimeSpan.FromSeconds(probe.GetDuration());
+
+            trackPlayer.CreateMarker(START_MARKER, Brushes.LightGreen, startTime);
+            trackPlayer.CreateMarker(END_MARKER, Brushes.LightPink, endTime);
+            //StartTime = startTime;
+            //EndTime = endTime;
         }
 
         protected virtual void OnPropertyChanged(string propertyName)
@@ -77,7 +90,7 @@ namespace LocalPlaylistMaster
             string trackPath = manager.GetTrackAudio(track).FullName;
             var ffmpeg = processes.CreateFfmpegProcess();
 
-            string args = $"-ss {startTime} -to {endTime} -i {trackPath} ";
+            string args = $"-ss {StartTime} -to {EndTime} -i {trackPath} ";
             if (changedVolume)
             {
                 args += $"-filter \"volume={Volume}\" ";

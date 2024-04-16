@@ -8,11 +8,15 @@
         Title="TrackEditWindow" Height="450" Width="800">
     <Grid>
         <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom">
-            <Grid>
-                <local:TrackPlayer x:Name="trackPlayer"/>
-                <Slider Margin="50"/>
-                <TextBlock x:Name="startText" Text="| Start" FontWeight="ExtraBold" Width="100" Height="20" Margin="52,25,603,-25" />
-            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <Label Content="Start time:" Width="100"/>
+                <local:TimeSpanBox Time="{Binding StartTime, Mode=TwoWay}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <Label Content="End time:" Width="100"/>
+                <local:TimeSpanBox Time="{Binding EndTime, Mode=TwoWay}"/>
+            </StackPanel>
+            <local:TrackPlayer x:Name="trackPlayer"/>
         </StackPanel>
     </Grid>
 </Window>

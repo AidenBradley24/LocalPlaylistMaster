@@ -17,12 +17,15 @@
                 <TextBlock x:Name="currentTimeText" DockPanel.Dock="Left" HorizontalAlignment="Left"/>
                 <TextBlock x:Name="durationText" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
             </DockPanel>
-            <DockPanel>
-                <Button Click="TogglePlay" Width="25" Height="30" BorderThickness="0">
+            <DockPanel Margin="0" Background="White">
+                <Button Click="TogglePlay" Width="20" Height="25" BorderThickness="0" Background="White" Margin="4,0">
                     <Image x:Name="togglePlayImage"/>
                 </Button>
-                <Slider x:Name="timelineSlider" Minimum="0" ValueChanged="TimelineSlider_ValueChanged" Margin="20"
-                PreviewMouseDown="TimelineSlider_PreviewMouseDown" DockPanel.Dock="Right"/>
+                <Grid DockPanel.Dock="Right" Margin="2,8" SizeChanged="Grid_SizeChanged">
+                    <Slider x:Name="timelineSlider" Minimum="0" ValueChanged="TimelineSlider_ValueChanged"
+                    PreviewMouseDown="TimelineSlider_PreviewMouseDown"/>
+                    <Canvas x:Name="Markers"/>
+                </Grid>
             </DockPanel>
         </StackPanel>
     </Border>

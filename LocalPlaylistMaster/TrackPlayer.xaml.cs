@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace LocalPlaylistMaster
@@ -15,6 +16,8 @@ namespace LocalPlaylistMaster
         private readonly DispatcherTimer timer;
         private bool isPlaying = false;
         public DatabaseManager? Db { get; set; }
+
+        private readonly Dictionary<string, TimeSpan> markerTimes = [];
 
         public TrackPlayer()
         {
@@ -29,7 +32,12 @@ namespace LocalPlaylistMaster
 
         private static string TimeString(TimeSpan time)
         {
-            return time.ToString(@"hh\:mm\:ss");
+            if(time > TimeSpan.FromHours(1))
+            {
+                return time.ToString(@"hh\:mm\:ss");
+            }
+
+            return time.ToString(@"mm\:ss");
         }
 
         public void ChangeTrack(Track track)
@@ -48,7 +56,6 @@ namespace LocalPlaylistMaster
                 if (mediaElement.NaturalDuration.HasTimeSpan)
                 {
                     timelineSlider.Value = mediaElement.Position.TotalSeconds;
-                    currentTimeText.Text = TimeString(mediaElement.Position);
                 }
             });
         }
@@ -56,6 +63,7 @@ namespace LocalPlaylistMaster
         private void TimelineSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
+            currentTimeText.Text = TimeString(mediaElement.Position);
         }
 
         private void TogglePlay(object sender, RoutedEventArgs e)
@@ -98,6 +106,126 @@ namespace LocalPlaylistMaster
             togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
             isPlaying = false;
             timelineSlider.Value = 0;
+        }
+
+        public TimeSpan GetMarkerTime(string marker)
+        {
+            return markerTimes[marker];
+        }
+
+        public void SetMarkerTime(string marker, TimeSpan time)
+        {
+            if (!markerTimes.ContainsKey(marker)) return;
+            markerTimes[marker] = time;
+            UIElement element = (UIElement)Markers.FindName(marker);
+            Canvas.SetLeft(element, MarkerTimeToCanvasPosition(time));
+        }
+
+        public void CreateMarker(string name, Brush fill, TimeSpan initialTime)
+        {
+            Grid markerElement = new()
+            {
+                Width = 12,
+                Height = 25,
+                Name = name
+            };
+
+            markerElement.MouseDown += MarkerMouseDown;
+            markerElement.MouseMove += MarkerMouseMove;
+            markerElement.MouseUp += MarkerMouseUp;
+            Rectangle rectangle = new()
+            {
+                Fill = fill,
+                Width = 2,
+                Margin = new Thickness(5, -10, 5, -8)
+            };
+            markerElement.Children.Add(rectangle);
+            TextBlock textBlock = new()
+            {
+                FontSize = 5,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = 10,
+                Background = fill,
+                Text = name,
+                Margin = new Thickness(0, -18, 0, 0)
+            };
+            markerElement.Children.Add(textBlock);
+
+            Markers.Children.Add(markerElement);
+            Canvas.SetLeft(markerElement, MarkerTimeToCanvasPosition(initialTime));
+            markerTimes.Add(name, initialTime);
+        }
+
+        public void RemoveMarker(string marker)
+        {
+            if (!markerTimes.ContainsKey(marker)) return;
+            markerTimes.Remove(marker);
+            UIElement childToRemove = (UIElement)Markers.FindName(marker);
+            Markers.Children.Remove(childToRemove);
+        }
+
+        private TimeSpan CanvasPositionToMarkerTime(double canvasPosition)
+        {
+            return mediaElement.NaturalDuration.TimeSpan * (canvasPosition / timelineSlider.ActualWidth - 10);
+        }
+
+        private double MarkerTimeToCanvasPosition(TimeSpan markerTime)
+        {
+            if (!mediaElement.NaturalDuration.HasTimeSpan) return 0.0;
+            return markerTime / mediaElement.NaturalDuration.TimeSpan * (timelineSlider.ActualWidth - 10);
+        }
+
+        // Variables to track dragging behavior
+        private bool isDragging = false;
+        private Point startPosition;
+
+        private void MarkerMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                isDragging = true;
+                ((UIElement)sender).CaptureMouse();
+                startPosition = e.GetPosition(timelineSlider);
+            }
+        }
+
+        private void MarkerMouseMove(object sender, MouseEventArgs e)
+        {
+            if (isDragging)
+            {
+                Point currentPosition = e.GetPosition(timelineSlider);
+                double deltaX = currentPosition.X - startPosition.X;
+                Grid marker = (Grid)sender;
+                double left = Canvas.GetLeft(marker) + deltaX;
+                double rightEdge = timelineSlider.ActualWidth - 10;
+                double clampedLeft = Math.Clamp(left, 0, rightEdge);
+                Canvas.SetLeft(marker, clampedLeft);
+                startPosition = new Point(currentPosition.X + clampedLeft - left, currentPosition.Y);
+            }
+        }
+
+        private void MarkerMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (isDragging)
+            {
+                isDragging = false;
+                ((UIElement)sender).ReleaseMouseCapture();
+                Grid marker = (Grid)sender;
+                double left = Canvas.GetLeft(marker);
+                markerTimes[((FrameworkElement)sender).Name] = CanvasPositionToMarkerTime(left);
+            }
+        }
+
+        private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            foreach(var child in Markers.Children)
+            {
+                Grid element = (Grid)child;
+                TimeSpan time = markerTimes[element.Name];
+                double pos = MarkerTimeToCanvasPosition(time);
+                Canvas.SetLeft(element, pos);
+            }
         }
     }
 }
