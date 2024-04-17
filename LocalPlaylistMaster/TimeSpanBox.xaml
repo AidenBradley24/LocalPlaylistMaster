@@ -7,6 +7,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="150">
     <TextBox x:Name="textBox" 
-         PreviewTextInput="TimeSpanTextBox_PreviewTextInput"
-         LostFocus="TimeSpanTextBox_LostFocus"/>
+        PreviewTextInput="TimeSpanTextBox_PreviewTextInput"
+        LostFocus="TimeSpanTextBox_LostFocus"
+        PreviewKeyDown="TimeSpanTextBox_PreviewKeyDown"/>
 </UserControl>

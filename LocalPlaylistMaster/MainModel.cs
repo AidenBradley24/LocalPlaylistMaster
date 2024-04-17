@@ -606,7 +606,6 @@ namespace LocalPlaylistMaster
         {
             if (Manager == null) return false;
 
-            Trace.WriteLine(filteredTrackCount);
             return Host.CurrentTab.Name switch
             {
                 "tracksTab" => currentTrackOffset + VIEW_SIZE < filteredTrackCount,
@@ -1270,6 +1269,7 @@ namespace LocalPlaylistMaster
             if(!track.Downloaded) return;
             TrackEditWindow window = new(track, manager, Host.dependencyProcessManager);
             window.ShowDialog();
+            RefreshTracks();
         }
         #endregion
 

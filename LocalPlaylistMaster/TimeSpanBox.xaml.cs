@@ -45,6 +45,19 @@ namespace LocalPlaylistMaster
 
         private void TimeSpanTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
+            FinishInput();
+        }
+
+        private void TimeSpanTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                FinishInput();
+            }
+        }
+
+        private void FinishInput()
+        {
             if (TimeSpan.TryParseExact(textBox.Text, Format, CultureInfo.InvariantCulture, out var timeSpan))
             {
                 Time = timeSpan;

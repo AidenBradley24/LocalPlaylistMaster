@@ -17,7 +17,10 @@ namespace LocalPlaylistMaster
         private bool isPlaying = false;
         public DatabaseManager? Db { get; set; }
 
+        public delegate void TimeChangedCallback(TimeSpan time);
+
         private readonly Dictionary<string, TimeSpan> markerTimes = [];
+        private readonly Dictionary<string, TimeChangedCallback> callbacks = [];
 
         public TrackPlayer()
         {
@@ -121,7 +124,7 @@ namespace LocalPlaylistMaster
             Canvas.SetLeft(element, MarkerTimeToCanvasPosition(time));
         }
 
-        public void CreateMarker(string name, Brush fill, TimeSpan initialTime)
+        public void CreateMarker(string name, Brush fill, TimeSpan initialTime, TimeChangedCallback callback)
         {
             Grid markerElement = new()
             {
@@ -155,6 +158,9 @@ namespace LocalPlaylistMaster
             Markers.Children.Add(markerElement);
             Canvas.SetLeft(markerElement, MarkerTimeToCanvasPosition(initialTime));
             markerTimes.Add(name, initialTime);
+            Markers.RegisterName(name, markerElement);
+            callbacks.Add(name, callback);
+            Task.Delay(250).ContinueWith(t => Dispatcher.Invoke(RedrawMarkers)); // TODO this is not a good solution
         }
 
         public void RemoveMarker(string marker)
@@ -163,11 +169,13 @@ namespace LocalPlaylistMaster
             markerTimes.Remove(marker);
             UIElement childToRemove = (UIElement)Markers.FindName(marker);
             Markers.Children.Remove(childToRemove);
+            Markers.UnregisterName(marker);
+            callbacks.Remove(marker);
         }
 
         private TimeSpan CanvasPositionToMarkerTime(double canvasPosition)
         {
-            return mediaElement.NaturalDuration.TimeSpan * (canvasPosition / timelineSlider.ActualWidth - 10);
+            return mediaElement.NaturalDuration.TimeSpan * (canvasPosition / (timelineSlider.ActualWidth - 10));
         }
 
         private double MarkerTimeToCanvasPosition(TimeSpan markerTime)
@@ -213,19 +221,27 @@ namespace LocalPlaylistMaster
                 ((UIElement)sender).ReleaseMouseCapture();
                 Grid marker = (Grid)sender;
                 double left = Canvas.GetLeft(marker);
-                markerTimes[((FrameworkElement)sender).Name] = CanvasPositionToMarkerTime(left);
+                TimeSpan time = CanvasPositionToMarkerTime(left);
+                string name = ((FrameworkElement)sender).Name;
+                markerTimes[name] = time;
+                callbacks[name].Invoke(time);
             }
         }
 
-        private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)
+        public void RedrawMarkers()
         {
-            foreach(var child in Markers.Children)
+            foreach (var child in Markers.Children)
             {
                 Grid element = (Grid)child;
                 TimeSpan time = markerTimes[element.Name];
                 double pos = MarkerTimeToCanvasPosition(time);
                 Canvas.SetLeft(element, pos);
             }
+        }
+
+        private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RedrawMarkers();
         }
     }
 }

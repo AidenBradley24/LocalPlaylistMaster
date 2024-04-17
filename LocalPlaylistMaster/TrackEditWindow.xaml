@@ -6,17 +6,32 @@
         xmlns:local="clr-namespace:LocalPlaylistMaster"
         mc:Ignorable="d"
         Title="TrackEditWindow" Height="450" Width="800">
-    <Grid>
-        <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom">
+    <DockPanel>
+        <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom" DockPanel.Dock="Top">
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <Label Content="Volume:" Width="100"/>
+                <Slider Value="{Binding Volume}" Minimum="0" Maximum="2" Width="200"/>
+                <Button Content="Reset" Margin="5,0" Command="{Binding ResetVolumeCommand}"/>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Start time:" Width="100"/>
                 <local:TimeSpanBox Time="{Binding StartTime, Mode=TwoWay}"/>
+                <Button Content="Reset" Margin="5,0" Command="{Binding ResetStartTimeCommand}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="End time:" Width="100"/>
                 <local:TimeSpanBox Time="{Binding EndTime, Mode=TwoWay}"/>
+                <Button Content="Reset" Margin="5,0" Command="{Binding ResetEndTimeCommand}"/>
             </StackPanel>
             <local:TrackPlayer x:Name="trackPlayer"/>
         </StackPanel>
-    </Grid>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
+            <Button Click="CancelButton"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
+            <Button Click="ApplyButton" Content="Apply" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsDefault="True"/>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+            <TextBlock Text="{Binding CreationMessage, Mode=OneWay}" HorizontalAlignment="Right" Margin="5,0"/>
+            <Separator/>
+        </StackPanel>
+    </DockPanel>
 </Window>
