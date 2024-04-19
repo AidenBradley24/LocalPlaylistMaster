@@ -31,6 +31,7 @@ namespace LocalPlaylistMaster
             };
             timer.Tick += Tick;
             togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
+            mediaElement.MediaEnded += (_, _) => Stop();
         }
 
         private static string TimeString(TimeSpan time)

@@ -273,9 +273,8 @@
                                     <!-- Add more CheckBoxes for additional settings -->
                                 </StackPanel>
                             </StackPanel>
-                            <localplaylistmaster:TrackPlayer x:Name="trackPlayer"
-                                Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Vertical" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <localplaylistmaster:TrackPlayer x:Name="trackPlayer"/>
                                 <Button Content="Edit Audio Track" Command="{Binding EditAudioTrackCommand}"/>
                             </StackPanel>
                         </StackPanel>

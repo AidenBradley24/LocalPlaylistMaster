@@ -873,8 +873,9 @@ namespace LocalPlaylistMaster
             if (propertyManager == null || propertyManager.MyType != typeof(Track)) return;
             if (HasPendingChanges()) return;
             var tracks = propertyManager.GetCollection<Track>();
+            ClearSelection();
 
-            if(tracks.Count() == 1)
+            if (tracks.Count() == 1)
             {
                 Track track = tracks.First();
                 var soft = track.SoftRollback();
@@ -943,6 +944,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Track)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             IEnumerable<Track> tracks = propertyManager.GetCollection<Track>();
             tracks = tracks.Where(x => !x.Downloaded);
@@ -959,6 +961,7 @@ namespace LocalPlaylistMaster
         {
             var manager = AssertDb();
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -981,6 +984,7 @@ namespace LocalPlaylistMaster
         {
             var manager = AssertDb();
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1000,6 +1004,7 @@ namespace LocalPlaylistMaster
         {
             var manager = AssertDb();
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1053,6 +1058,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Track)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             var result = MessageBox.Show("Are you sure that you want to remove selected tracks?\n" +
                 $"{string.Join('\n', propertyManager.GetCollection<Track>().Select(t => $"#{t.Id} -- `{t.Name}`"))}",
@@ -1079,6 +1085,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Track)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1100,6 +1107,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Remote)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             var result = MessageBox.Show("Are you sure that you want to remove selected remotes?\n" +
                 $"{string.Join('\n', propertyManager.GetCollection<Remote>().Select(r => $"#{r.Id} -- `{r.Name}`"))}",
@@ -1130,6 +1138,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Playlist)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             var result = MessageBox.Show("Are you sure that you want to remove selected playlists?\n" +
                 $"{string.Join('\n', propertyManager.GetCollection<Playlist>().Select(p => $"#{p.Id} -- `{p.Name}`"))}",
@@ -1156,6 +1165,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Remote)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1173,6 +1183,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Remote)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1190,6 +1201,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Remote)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             await TrackedTask(async (reporter) =>
             {
@@ -1206,6 +1218,8 @@ namespace LocalPlaylistMaster
         {
             var manager = AssertDb();
             if (HasPendingChanges()) return;
+            ClearSelection();
+
             UserQueryWindow window = new(trackUserQuery)
             {
                 Owner = Host,
@@ -1223,6 +1237,7 @@ namespace LocalPlaylistMaster
         {
             AssertDb();
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             trackUserQuery = new UserQuery("");
             currentTrackOffset = 0;
@@ -1255,6 +1270,7 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Playlist)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
 
             ExportPlaylistWindow window = new(propertyManager.GetCollection<Playlist>().First(), manager);
             window.ShowDialog();
@@ -1265,6 +1281,8 @@ namespace LocalPlaylistMaster
             var manager = AssertDb();
             if (propertyManager?.MyType != typeof(Track)) return;
             if (HasPendingChanges()) return;
+            ClearSelection();
+
             Track track = propertyManager.GetCollection<Track>().First();
             if(!track.Downloaded) return;
             TrackEditWindow window = new(track, manager, Host.dependencyProcessManager);
