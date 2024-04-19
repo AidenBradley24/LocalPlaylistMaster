@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 using static LocalPlaylistMaster.Backend.ProgressModel;
-using static LocalPlaylistMaster.Backend.Extensions;
+using static LocalPlaylistMaster.Backend.Utilities.Extensions;
 using LocalPlaylistMaster.Backend.Playlist_Files;
 
 namespace LocalPlaylistMaster.Backend

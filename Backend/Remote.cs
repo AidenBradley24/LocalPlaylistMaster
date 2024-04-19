@@ -1,11 +1,12 @@
 ﻿using System.Text.RegularExpressions;
+using LocalPlaylistMaster.Backend.Utilities;
 
 namespace LocalPlaylistMaster.Backend
 {
     /// <summary>
     /// A bundle of data related to a remote playlist.
     /// </summary>
-    public partial record Remote
+    public partial record Remote : IMiscJsonUser
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -14,6 +15,7 @@ namespace LocalPlaylistMaster.Backend
         public int TrackCount { get; set; }
         public RemoteType Type { get; set; }
         public RemoteSettings Settings { get; set; }
+        public string MiscJson { get; set; }
 
         public bool Locked
         {
@@ -33,7 +35,7 @@ namespace LocalPlaylistMaster.Backend
 
         public const int UNINITIALIZED = -1;
 
-        public Remote(int id, string name, string description, string link, int trackCount, RemoteType type, RemoteSettings settings)
+        public Remote(int id, string name, string description, string link, int trackCount, RemoteType type, RemoteSettings settings, string miscJson)
         {
             Id = id;
             Name = name;
@@ -42,6 +44,7 @@ namespace LocalPlaylistMaster.Backend
             TrackCount = trackCount;
             Type = type;
             Settings = settings;
+            MiscJson = miscJson;
         }
 
         public Remote()
@@ -52,6 +55,7 @@ namespace LocalPlaylistMaster.Backend
             Link = "";
             Type = RemoteType.UNINITIALIZED;
             Settings = RemoteSettings.none;
+            MiscJson = "{}";
         }
 
         public string TruncatedDescription

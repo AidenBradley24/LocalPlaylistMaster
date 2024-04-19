@@ -24,7 +24,7 @@ namespace LocalPlaylistMaster.Backend
         private int remoteCount = -1;
         private int playlistCount = -1;
         private int filteredTrackCount = -1;
-        private UserQuery filteredCountQuery;
+        private UserQuery? filteredCountQuery;
         public const int NO_REMOTE = -1;
 
         public DatabaseManager(string dirPath, DependencyProcessManager dependencies, bool newDb)
@@ -296,7 +296,7 @@ namespace LocalPlaylistMaster.Backend
 
         public async Task RemoveRemote(int remote, bool alsoDeleteTracks)
         {
-            List<int> toOrphan = new();
+            List<int> toOrphan = [];
             using SQLiteTransaction transaction = db.BeginTransaction();
             try
             {
@@ -383,13 +383,15 @@ namespace LocalPlaylistMaster.Backend
                 string name = reader.GetString("Name");
                 RemoteType type = (RemoteType)reader.GetInt32("Type");
                 RemoteSettings settings = (RemoteSettings)reader.GetInt32("Settings");
+                string miscJson = reader.GetString("MiscJson");
                 Remote existingRemote = new()
                 {
                     Name = name,
                     Id = id,
                     Link = link,
                     Type = type,
-                    Settings = settings
+                    Settings = settings,
+                    MiscJson = miscJson
                 };
 
                 return RemoteManager.Create(existingRemote, dependencyProcessManager);
@@ -408,7 +410,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Offset", offset);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<Track> tracks = new();
+            List<Track> tracks = [];
 
             while (await reader.ReadAsync())
             {
@@ -438,7 +440,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Offset", offset);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<Remote> remotes = new();
+            List<Remote> remotes = [];
 
             while (await reader.ReadAsync())
             {
@@ -449,7 +451,8 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetString("Link"),
                     reader.GetInt32("TrackCount"),
                     (RemoteType)reader.GetInt32("Type"),
-                    (RemoteSettings)reader.GetInt32("Settings"));
+                    (RemoteSettings)reader.GetInt32("Settings"),
+                    reader.GetString("MiscJson"));
                 remotes.Add(remote);
             }
 
@@ -464,7 +467,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Offset", offset);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<Playlist> playlists = new();
+            List<Playlist> playlists = [];
 
             while (await reader.ReadAsync())
             {
@@ -561,7 +564,7 @@ namespace LocalPlaylistMaster.Backend
                     downloadDir.Delete(true);
                 }
 
-                List<Track> notDownloaded = new();
+                List<Track> notDownloaded = [];
 
                 using SQLiteCommand command = db.CreateCommand();
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
@@ -587,7 +590,7 @@ namespace LocalPlaylistMaster.Backend
                     await command.ExecuteNonQueryAsync();
                 }
 
-                if (notDownloaded.Any())
+                if (notDownloaded.Count != 0)
                 {
                     reporter.Report((ReportType.Message, new MessageBox()
                     {
@@ -638,7 +641,7 @@ namespace LocalPlaylistMaster.Backend
                 await conversion.Convert();
                 downloadDir.Delete(true);
 
-                List<int> notDownloaded = new();
+                List<int> notDownloaded = [];
 
                 using SQLiteCommand command = db.CreateCommand();
                 command.CommandText = $"UPDATE Tracks SET TimeInSeconds = @Length WHERE Id = @Id";
@@ -668,7 +671,7 @@ namespace LocalPlaylistMaster.Backend
                     await command.ExecuteNonQueryAsync();
                 }
 
-                if (notDownloaded.Any())
+                if (notDownloaded.Count != 0)
                 {
                     reporter.Report((ReportType.Message, new MessageBox()
                     {
@@ -726,7 +729,7 @@ namespace LocalPlaylistMaster.Backend
                 await conversion.Convert();
                 reporter.Report((ReportType.DetailText, "updating database"));
 
-                List<Track> notDownloaded = new();
+                List<Track> notDownloaded = [];
 
                 using SQLiteCommand command = db.CreateCommand();
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
@@ -753,7 +756,7 @@ namespace LocalPlaylistMaster.Backend
                     await command.ExecuteNonQueryAsync();
                 }
 
-                if (notDownloaded.Any())
+                if (notDownloaded.Count != 0)
                 {
                     reporter.Report((ReportType.Message, new MessageBox()
                     {
@@ -804,7 +807,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Remote", remote);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<string> remoteIds = new();
+            List<string> remoteIds = [];
             while(await reader.ReadAsync())
             {
                 remoteIds.Add(reader.GetString(0));
@@ -824,7 +827,7 @@ namespace LocalPlaylistMaster.Backend
             command.Parameters.AddWithValue("@Remote", remote);
 
             using var reader = await command.ExecuteReaderAsync();
-            List<(int id, string remoteId)> ids = new();
+            List<(int id, string remoteId)> ids = [];
             while (await reader.ReadAsync())
             {
                 ids.Add((reader.GetInt32(0), reader.GetString(1)));
@@ -915,7 +918,7 @@ namespace LocalPlaylistMaster.Backend
         /// <returns>Collection of unlocked tracks</returns>
         private async Task<IEnumerable<Track>> FilterUnlockedTracks(IEnumerable<Track> tracks)
         {
-            HashSet<int> unlocked = new();
+            HashSet<int> unlocked = [];
             using SQLiteCommand command = db.CreateCommand();
             command.CommandText = "SELECT Id FROM Tracks WHERE (Settings & @Flag) != 0";
             command.Parameters.AddWithValue("@Flag", TrackSettings.locked);
@@ -1046,8 +1049,8 @@ namespace LocalPlaylistMaster.Backend
 
         private async Task<(IEnumerable<Track> existingTracks, IEnumerable<Track> newTracks)> FilterExistingTracks(IEnumerable<Track> allTracks)
         {
-            List<Track> existingTracks = new();
-            List<Track> newTracks = new();
+            List<Track> existingTracks = [];
+            List<Track> newTracks = [];
 
             using (SQLiteCommand command = db.CreateCommand())
             {
@@ -1118,7 +1121,7 @@ namespace LocalPlaylistMaster.Backend
 
         public async Task<Dictionary<int, string>> GetRemoteNames(IEnumerable<int> remoteIDs)
         {
-            Dictionary<int, string> remoteMap = new();
+            Dictionary<int, string> remoteMap = [];
             using SQLiteCommand command = db.CreateCommand();
             command.CommandText = "SELECT Id, Name FROM Remotes WHERE Id IN (" + string.Join(",", remoteIDs) + ")";
             using var reader = await command.ExecuteReaderAsync();              

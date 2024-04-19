@@ -3,10 +3,11 @@ using System.Text.Json.Nodes;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text;
+using LocalPlaylistMaster.Backend.Utilities;
 
 namespace LocalPlaylistMaster.Backend
 {
-    public partial record Track : IEqualityComparer<Track>, IComparable<Track>
+    public partial record Track : IEqualityComparer<Track>, IComparable<Track>, IMiscJsonUser
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -116,7 +117,7 @@ namespace LocalPlaylistMaster.Backend
                 { nameof(Album), Album },
                 { nameof(Rating), Rating }
             };
-            UpdateJson(root, "backup", backupObject);
+            ((IMiscJsonUser)this).UpdateJson(root, "backup", backupObject);
         }
 
         public void Rollback()
@@ -148,25 +149,6 @@ namespace LocalPlaylistMaster.Backend
             }
 
             return null;
-        }
-
-        private void UpdateJson(JsonElement root, string propertyName, JsonObject obj)
-        {
-            using var stream = new MemoryStream();
-            using (var writer = new Utf8JsonWriter(stream))
-            {
-                writer.WriteStartObject();
-                foreach (var property in root.EnumerateObject())
-                {
-                    if (property.Name == propertyName) continue;
-                    writer.WritePropertyName(property.Name);
-                    property.Value.WriteTo(writer);
-                }
-                writer.WritePropertyName(propertyName);
-                obj.WriteTo(writer);
-                writer.WriteEndObject();
-            }
-            MiscJson = Encoding.UTF8.GetString(stream.ToArray());
         }
 
         public string LengthString { get => TimeInSeconds == UNINITIALIZED ? "?" : TimeSpan.FromSeconds(TimeInSeconds).ToString(@"hh\:mm\:ss"); }

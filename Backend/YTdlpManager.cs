@@ -4,10 +4,8 @@ using static LocalPlaylistMaster.Backend.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
-    public class YTdlpManager : RemoteManager
+    public class YTdlpManager(Remote remote, DependencyProcessManager dependencies) : RemoteManager(remote, dependencies)
     {
-        public YTdlpManager(Remote remote, DependencyProcessManager dependencies) : base(remote, dependencies) {}
-
         public override async Task<(DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
@@ -34,7 +32,7 @@ namespace LocalPlaylistMaster.Backend
 
             reporter.Report((ReportType.DetailText, "reading downloaded files"));
 
-            Dictionary<string, FileInfo> fileMap = new();
+            Dictionary<string, FileInfo> fileMap = [];
             foreach(var file in downloadDir.EnumerateFiles())
             {
                 fileMap.Add(GetURLTag(file.Name), file);
@@ -68,7 +66,7 @@ namespace LocalPlaylistMaster.Backend
 
             string playlistId = GetPlaylistId(ExistingRemote.Link);
 
-            List<Track> tracks = new();
+            List<Track> tracks = [];
             string playlistName = "playlist";
             string playlistDescription = "";
 
@@ -105,7 +103,7 @@ namespace LocalPlaylistMaster.Backend
             tracks = MetadataFiller.ApplyMetadataFillerSuite(typeof(YTSuite), tracks);
 
             return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter,
-                ExistingRemote.Type, ExistingRemote.Settings), tracks);
+                ExistingRemote.Type, ExistingRemote.Settings, "{}"), tracks);
         }
 
         public static string GetNameWithoutURLTag(string name)
@@ -161,13 +159,13 @@ namespace LocalPlaylistMaster.Backend
 
             string playlistId = GetPlaylistId(ExistingRemote.Link);
 
-            List<Track> tracks = new();
+            List<Track> tracks = [];
             string playlistName = "playlist";
             string playlistDescription = "";
 
             reporter.Report((ReportType.DetailText, "reading downloaded files"));
 
-            Dictionary<string, FileInfo> fileMap = new();
+            Dictionary<string, FileInfo> fileMap = [];
 
             int counter = 0;
             foreach (FileInfo file in downloadDir.EnumerateFiles())
@@ -212,7 +210,7 @@ namespace LocalPlaylistMaster.Backend
             tracks = MetadataFiller.ApplyMetadataFillerSuite(typeof(YTSuite), tracks);
 
             return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter,
-                ExistingRemote.Type, ExistingRemote.Settings), tracks, downloadDir, fileMap);
+                ExistingRemote.Type, ExistingRemote.Settings, "{}"), tracks, downloadDir, fileMap);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace LocalPlaylistMaster.Backend
+namespace LocalPlaylistMaster.Backend.Utilities
 {
     public static partial class Extensions
     {

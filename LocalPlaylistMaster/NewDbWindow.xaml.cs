@@ -57,7 +57,7 @@ namespace LocalPlaylistMaster
                 try
                 {
                     string path = Path.Join(Path.GetFullPath(FileLocation), DbName);
-                    if (Backend.Extensions.IsInsideProject(path))
+                    if (Backend.Utilities.Extensions.IsInsideProject(path))
                     {
                         return ERROR_PATH;
                     }

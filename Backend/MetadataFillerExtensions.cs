@@ -1,31 +1,29 @@
-﻿using System;
-
-namespace LocalPlaylistMaster.Backend
+﻿namespace LocalPlaylistMaster.Backend
 {
     public static class MetadataFillerExtensions
     {
         /// <summary>
         /// Common seperator characters
         /// </summary>
-        public static readonly char[] SEPERATORS = { '-', '\u2012', '\u2013', '\u2014', '\u2015', '|', '·', '\uFF02', '\u0022', '\u201C', '\u201D', '\u201E', '\u201F' };
+        public static readonly char[] SEPERATORS = ['-', '\u2012', '\u2013', '\u2014', '\u2015', '|', '·', '\uFF02', '\u0022', '\u201C', '\u201D', '\u201E', '\u201F'];
 
         /// <summary>
         /// Common quote characters
         /// </summary>
-        public static readonly char[] QUOTES = { '\u0022', '\u00AB', '\u00BB', '\u201C', '\u201D', '\u201E', '\uFF02' };
+        public static readonly char[] QUOTES = ['\u0022', '\u00AB', '\u00BB', '\u201C', '\u201D', '\u201E', '\uFF02'];
 
         /// <summary>
         /// Characters used with trim to clean up metadata
         /// </summary>
-        public static readonly char[] CLEAN_UP_TRIM = { ' ', '\n', '\t', '\r', '.', ':', '\uFF1A', '-', '\u2012', '\u2013', '\u2014', '\u2015', '|', '·', '\uFF02', '\u0022', '\u201C', '\u201D', '\u201E', '\u201F' };
+        public static readonly char[] CLEAN_UP_TRIM = [' ', '\n', '\t', '\r', '.', ':', '\uFF1A', '-', '\u2012', '\u2013', '\u2014', '\u2015', '|', '·', '\uFF02', '\u0022', '\u201C', '\u201D', '\u201E', '\u201F'];
 
         /// <summary>
         /// Prepositions that are usually not at the end of a title
         /// </summary>
-        public static readonly string[] PREPOSITIONS = { 
+        public static readonly string[] PREPOSITIONS = [ 
             "at", "by", "during", "for", "from", "in", "onto", "of",
             "to", "with", "than", "through", "throughout", "towards"
-        };
+        ];
 
         /// <summary>
         /// Split a sentence by only the first divider. If there is no split, second half will be "".

@@ -5,5 +5,6 @@
 	Link TEXT,
 	TrackCount INTEGER,
 	Type INTEGER,
-	Settings INTEGER
+	Settings INTEGER,
+	MiscJson Text
 );

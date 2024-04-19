@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
-using System.Xml.Linq;
 using LocalPlaylistMaster.Backend;
 using Microsoft.Win32;
 
@@ -213,8 +212,8 @@ namespace LocalPlaylistMaster
             {
                 try
                 {
-                    string path = playlistManager.HasLib ? Path.GetFullPath(FileLocation) : Path.Join(Path.GetFullPath(FileLocation), Backend.Extensions.CleanName(playlistManager.Playlist?.Name ?? throw new Exception()));
-                    if (Backend.Extensions.IsInsideProject(path))
+                    string path = playlistManager.HasLib ? Path.GetFullPath(FileLocation) : Path.Join(Path.GetFullPath(FileLocation), Backend.Utilities.Extensions.CleanName(playlistManager.Playlist?.Name ?? throw new Exception()));
+                    if (Backend.Utilities.Extensions.IsInsideProject(path))
                     {
                         return ERROR_PATH;
                     }
