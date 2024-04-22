@@ -1,4 +1,4 @@
-﻿using LocalPlaylistMaster.Backend;
+﻿using LocalPlaylistMaster.Backend.Utilities;
 using System.Windows;
 
 namespace LocalPlaylistMaster

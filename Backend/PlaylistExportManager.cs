@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel;
-using static LocalPlaylistMaster.Backend.ProgressModel;
+using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 using static LocalPlaylistMaster.Backend.Utilities.Extensions;
 using LocalPlaylistMaster.Backend.Playlist_Files;
 

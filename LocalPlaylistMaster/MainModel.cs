@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
+using LocalPlaylistMaster.Backend.Utilities;
 using LocalPlaylistMaster.Extensions;
 
 namespace LocalPlaylistMaster

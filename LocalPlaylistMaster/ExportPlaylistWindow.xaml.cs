@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 using LocalPlaylistMaster.Backend;
+using LocalPlaylistMaster.Backend.Utilities;
 using Microsoft.Win32;
 
 namespace LocalPlaylistMaster

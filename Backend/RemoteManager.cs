@@ -1,4 +1,4 @@
-﻿using static LocalPlaylistMaster.Backend.ProgressModel;
+﻿using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {

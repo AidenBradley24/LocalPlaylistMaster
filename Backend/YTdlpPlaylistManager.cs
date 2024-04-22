@@ -1,6 +1,6 @@
 ﻿using LocalPlaylistMaster.Backend.Metadata_Fillers;
 using System.Diagnostics;
-using static LocalPlaylistMaster.Backend.ProgressModel;
+using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 using static LocalPlaylistMaster.Backend.Utilities.YTdlpUtils;
 
 namespace LocalPlaylistMaster.Backend

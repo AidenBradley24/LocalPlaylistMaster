@@ -1,4 +1,4 @@
-﻿using static LocalPlaylistMaster.Backend.MetadataFillerExtensions;
+﻿using static LocalPlaylistMaster.Backend.Utilities.MetadataFillerExtensions;
 
 namespace LocalPlaylistMaster.Backend.Metadata_Fillers
 {

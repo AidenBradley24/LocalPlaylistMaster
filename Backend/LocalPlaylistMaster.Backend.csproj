@@ -28,14 +28,14 @@
         <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
     <ItemGroup>
-      <Compile Update="SQL_Resources.Designer.cs">
+      <Compile Update="SQL\SQL_Resources.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>SQL_Resources.resx</DependentUpon>
       </Compile>
     </ItemGroup>
     <ItemGroup>
-      <EmbeddedResource Update="SQL_Resources.resx">
+      <EmbeddedResource Update="SQL\SQL_Resources.resx">
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>SQL_Resources.Designer.cs</LastGenOutput>
       </EmbeddedResource>

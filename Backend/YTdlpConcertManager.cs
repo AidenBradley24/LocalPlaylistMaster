@@ -1,8 +1,8 @@
-﻿using LocalPlaylistMaster.Backend.Utilities;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using static LocalPlaylistMaster.Backend.ProgressModel;
+using LocalPlaylistMaster.Backend.Utilities;
+using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 using static LocalPlaylistMaster.Backend.Utilities.YTdlpUtils;
 
 namespace LocalPlaylistMaster.Backend

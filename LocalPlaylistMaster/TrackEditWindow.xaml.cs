@@ -4,6 +4,7 @@ using System.Windows.Input;
 using LocalPlaylistMaster.Backend;
 using System.Windows.Media;
 using System.IO;
+using LocalPlaylistMaster.Backend.Utilities;
 
 namespace LocalPlaylistMaster
 {
@@ -73,9 +74,8 @@ namespace LocalPlaylistMaster
             trackPlayer.ChangeTrack(track);
             Title = $"Edit Track ({track.Name})";
 
-            TrackProbe probe = new(manager.GetTrackAudio(track), track, processes);
             startTime = TimeSpan.Zero;
-            endTime = TimeSpan.FromSeconds(probe.GetDuration());
+            endTime = TimeSpan.FromSeconds(track.TimeInSeconds);
 
             var tempStartTime = startTime;
             var tempEndTime = endTime;

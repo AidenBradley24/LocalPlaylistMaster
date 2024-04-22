@@ -17,7 +17,7 @@ namespace LocalPlaylistMaster.Backend
         public string Album { get; set; }
         public string Description { get; set; }
         public int Rating { get; set; }
-        public int TimeInSeconds { get; set; }
+        public double TimeInSeconds { get; set; }
         public string MiscJson { get; set; }
 
         public TrackSettings Settings { get; set; }
@@ -61,7 +61,7 @@ namespace LocalPlaylistMaster.Backend
         public const int UNINITIALIZED = -1;
 
         public Track(int id, string name, int remote, string remoteId, string artists, string album, string description,
-            int rating, int timeInSeconds, TrackSettings settings, string miscJson)
+            int rating, double timeInSeconds, TrackSettings settings, string miscJson)
         {
             Id = id;
             Name = name;

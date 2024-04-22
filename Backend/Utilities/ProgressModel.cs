@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 
-namespace LocalPlaylistMaster.Backend
+namespace LocalPlaylistMaster.Backend.Utilities
 {
     /// <summary>
     /// Exposes progress and details of async background tasks
@@ -66,7 +66,7 @@ namespace LocalPlaylistMaster.Backend
         public void Report(ReportType type, object report)
         {
             Trace.WriteLine($"{type}, {report}");
-            switch(type)
+            switch (type)
             {
                 case ReportType.TitleText:
                     TitleText = (string)report;

@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using LocalPlaylistMaster.Backend;
+using LocalPlaylistMaster.Backend.Utilities;
 
 namespace LocalPlaylistMaster
 {

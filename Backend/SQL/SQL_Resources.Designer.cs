@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LocalPlaylistMaster.Backend {
+namespace LocalPlaylistMaster.Backend.SQL {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace LocalPlaylistMaster.Backend {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("LocalPlaylistMaster.Backend.SQL_Resources", typeof(SQL_Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("LocalPlaylistMaster.Backend.SQL.SQL_Resources", typeof(SQL_Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -82,7 +82,8 @@ namespace LocalPlaylistMaster.Backend {
         ///	Link TEXT,
         ///	TrackCount INTEGER,
         ///	Type INTEGER,
-        ///	Settings INTEGER
+        ///	Settings INTEGER,
+        ///	MiscJson Text
         ///);.
         /// </summary>
         internal static string create_remotes {

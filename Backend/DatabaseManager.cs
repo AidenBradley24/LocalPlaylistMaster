@@ -3,7 +3,9 @@ using System.Xml.Serialization;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Data;
-using static LocalPlaylistMaster.Backend.ProgressModel;
+using LocalPlaylistMaster.Backend.Utilities;
+using LocalPlaylistMaster.Backend.SQL;
+using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -423,7 +425,7 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetString("Album"),
                     reader.GetString("Description"),
                     reader.GetInt32("Rating"),
-                    reader.GetInt32("TimeInSeconds"),
+                    reader.GetDouble("TimeInSeconds"),
                     (TrackSettings)reader.GetInt32("Settings"),
                     reader.GetString("MiscJson"));
                 tracks.Add(track);
@@ -590,7 +592,7 @@ namespace LocalPlaylistMaster.Backend
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
                 command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
                 command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
-                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Double));
                 foreach (var track in toDownload)
                 {
                     FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
@@ -677,7 +679,7 @@ namespace LocalPlaylistMaster.Backend
                 command.CommandText = $"UPDATE Tracks SET TimeInSeconds = @Length WHERE Id = @Id";
                 command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
                 command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
-                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Double));
                 foreach (int id in ids.Select(t => t.id))
                 {
                     FileInfo audioFile = new(Path.Join(audioDir.FullName, $"{id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
@@ -775,7 +777,7 @@ namespace LocalPlaylistMaster.Backend
                 command.CommandText = $"UPDATE Tracks SET Settings = @Settings, TimeInSeconds = @Length WHERE Id = @Id";
                 command.Parameters.Add(new SQLiteParameter("@Id", DbType.Int32));
                 command.Parameters.Add(new SQLiteParameter("@Settings", DbType.Int32));
-                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Int32));
+                command.Parameters.Add(new SQLiteParameter("@Length", DbType.Double));
                 command.Parameters.AddWithValue("@Remote", remote);
                 foreach (var track in fetchedTracks)
                 {
@@ -1203,7 +1205,7 @@ namespace LocalPlaylistMaster.Backend
                     reader.GetString("Album"),
                     reader.GetString("Description"),
                     reader.GetInt32("Rating"),
-                    reader.GetInt32("TimeInSeconds"),
+                    reader.GetDouble("TimeInSeconds"),
                     (TrackSettings)reader.GetInt32("Settings"),
                     reader.GetString("MiscJson"));
                 tracks.Add(track);

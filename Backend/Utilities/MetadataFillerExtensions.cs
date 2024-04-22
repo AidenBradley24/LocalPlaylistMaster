@@ -1,4 +1,4 @@
-﻿namespace LocalPlaylistMaster.Backend
+﻿namespace LocalPlaylistMaster.Backend.Utilities
 {
     public static class MetadataFillerExtensions
     {
@@ -20,7 +20,7 @@
         /// <summary>
         /// Prepositions that are usually not at the end of a title
         /// </summary>
-        public static readonly string[] PREPOSITIONS = [ 
+        public static readonly string[] PREPOSITIONS = [
             "at", "by", "during", "for", "from", "in", "onto", "of",
             "to", "with", "than", "through", "throughout", "towards"
         ];
@@ -117,7 +117,7 @@
         {
             usedWord = word;
 
-            if(!sentence.StartsWith(word, StringComparison.InvariantCultureIgnoreCase))
+            if (!sentence.StartsWith(word, StringComparison.InvariantCultureIgnoreCase))
             {
                 return false;
             }
@@ -182,7 +182,7 @@
         {
             foreach (string s in span)
             {
-                if(s.Equals(word, StringComparison.InvariantCultureIgnoreCase))
+                if (s.Equals(word, StringComparison.InvariantCultureIgnoreCase))
                 {
                     return true;
                 }
