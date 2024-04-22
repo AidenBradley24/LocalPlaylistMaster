@@ -129,7 +129,7 @@ namespace LocalPlaylistMaster
             }
             else
             {
-                return RemoteType.ytdlp;
+                return RemoteType.ytdlp_playlist;
             }
         }
     }

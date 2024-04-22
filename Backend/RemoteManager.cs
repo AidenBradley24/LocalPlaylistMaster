@@ -4,7 +4,7 @@ namespace LocalPlaylistMaster.Backend
 {
     public enum RemoteType
     {
-        UNINITIALIZED = -1, ytdlp
+        UNINITIALIZED = -1, ytdlp_playlist, ytdlp_concert
     }
 
     /// <summary>
@@ -15,11 +15,12 @@ namespace LocalPlaylistMaster.Backend
         internal Remote ExistingRemote { get; init; }
         protected DependencyProcessManager Dependencies { get; init; }
 
-        public static RemoteManager Create(Remote remote, DependencyProcessManager dependencies)
+        public static RemoteManager Create(Remote remote, DependencyProcessManager dependencies, DatabaseManager db)
         {
             return remote.Type switch
             {
-                RemoteType.ytdlp => new YTdlpManager(remote, dependencies),
+                RemoteType.ytdlp_playlist => new YTdlpPlaylistManager(remote, dependencies),
+                RemoteType.ytdlp_concert => new YTdlpConcertManager(remote, dependencies, db),
                 _ => throw new Exception("Invalid remote type")
             };
         }
@@ -29,6 +30,10 @@ namespace LocalPlaylistMaster.Backend
             Dependencies = dependencies;
             ExistingRemote = remote;
         }
+
+        public abstract bool CanFetch { get; }
+        public abstract bool CanDownload { get; }
+        public abstract bool CanSync { get; }
 
         /// <summary>
         /// Fetches track metadata from a remote server.

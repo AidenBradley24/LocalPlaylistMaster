@@ -1,11 +1,21 @@
 ﻿using LocalPlaylistMaster.Backend.Metadata_Fillers;
 using System.Diagnostics;
 using static LocalPlaylistMaster.Backend.ProgressModel;
+using static LocalPlaylistMaster.Backend.Utilities.YTdlpUtils;
 
 namespace LocalPlaylistMaster.Backend
 {
-    public class YTdlpManager(Remote remote, DependencyProcessManager dependencies) : RemoteManager(remote, dependencies)
+    /// <summary>
+    /// YouTube and sites in <seealso href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">this list</seealso> download WHOLE PLAYLIST
+    /// </summary>
+    /// <param name="remote"></param>
+    /// <param name="dependencies"></param>
+    internal class YTdlpPlaylistManager(Remote remote, DependencyProcessManager dependencies) : RemoteManager(remote, dependencies)
     {
+        public override bool CanFetch => true;
+        public override bool CanDownload => true;
+        public override bool CanSync => true;
+
         public override async Task<(DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
@@ -104,32 +114,6 @@ namespace LocalPlaylistMaster.Backend
 
             return (new Remote(ExistingRemote.Id, playlistName, playlistDescription, ExistingRemote.Link, counter,
                 ExistingRemote.Type, ExistingRemote.Settings, "{}"), tracks);
-        }
-
-        public static string GetNameWithoutURLTag(string name)
-        {
-            return name[..name.LastIndexOf('[')].Trim();
-        }
-
-        public static string GetURLTag(string name)
-        {
-            return name[(name.LastIndexOf('[') + 1)..name.LastIndexOf(']')];
-        }
-
-        public static string GetPlaylistId(string url)
-        {
-            string playlistID;
-            const string LIST_URL = "list=";
-            if (url.Contains('&'))
-            {
-                playlistID = url.Split('&').Where(s => s.StartsWith(LIST_URL)).First()[LIST_URL.Length..];
-            }
-            else
-            {
-                int listIndex = url.IndexOf(LIST_URL) + LIST_URL.Length;
-                playlistID = url[listIndex..];
-            }
-            return playlistID;
         }
 
         public override async Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> 

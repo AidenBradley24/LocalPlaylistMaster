@@ -103,7 +103,7 @@ namespace LocalPlaylistMaster.Backend
 
         public enum Status { ready, error, searching }
 
-        private async Task IngestTracks(IEnumerable<Track> tracks)
+        public async Task IngestTracks(IEnumerable<Track> tracks)
         {
             using SQLiteCommand command = db.CreateCommand();
             StringBuilder sb = new("INSERT INTO Tracks (Name, Remote, RemoteId, Artists," +
@@ -394,7 +394,7 @@ namespace LocalPlaylistMaster.Backend
                     MiscJson = miscJson
                 };
 
-                return RemoteManager.Create(existingRemote, dependencyProcessManager);
+                return RemoteManager.Create(existingRemote, dependencyProcessManager, this);
             }
             else
             {
@@ -507,6 +507,16 @@ namespace LocalPlaylistMaster.Backend
                     }));
                     return;
                 }
+                else if (!manager.CanFetch)
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "ERROR!",
+                        Detail = $"Remote cannot use fetch!\nId:{remote}",
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                    return;
+                }
 
                 reporter.Report((ReportType.DetailText, "fetching remote"));
                 (Remote fetchedRemote, IEnumerable<Track> fetchedTracks) = await manager.FetchRemote(reporter);
@@ -553,6 +563,16 @@ namespace LocalPlaylistMaster.Backend
                         {
                             Title = "ERROR!",
                             Detail = $"Remote was not found in the database!\nId:{group.Key}",
+                            Type = MessageBox.MessageType.warning,
+                        }));
+                        continue;
+                    }
+                    else if (!manager.CanDownload)
+                    {
+                        reporter.Report((ReportType.Message, new MessageBox()
+                        {
+                            Title = "ERROR!",
+                            Detail = $"Remote cannot download standalone!\nId:{group.Key}",
                             Type = MessageBox.MessageType.warning,
                         }));
                         continue;
@@ -634,6 +654,16 @@ namespace LocalPlaylistMaster.Backend
                     }));
                     return;
                 }
+                else if (!manager.CanDownload)
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "ERROR!",
+                        Detail = $"Remote cannot download standalone!\nId:{remote}",
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                    return;
+                }
 
                 var ids = await GetExistingTrackIdsFromRemote(remote);
                 (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, ids.Select(t => t.remoteId));
@@ -711,6 +741,16 @@ namespace LocalPlaylistMaster.Backend
                     }));
                     return;
                 }
+                else if (!manager.CanSync)
+                {
+                    reporter.Report((ReportType.Message, new MessageBox()
+                    {
+                        Title = "ERROR!",
+                        Detail = $"Remote cannot use sync!\nId:{remote}",
+                        Type = MessageBox.MessageType.warning,
+                    }));
+                    return;
+                }
 
                 reporter.Report((ReportType.TitleText, $"Syncing Remote '{manager.ExistingRemote.Name}'"));
                 reporter.Report((ReportType.DetailText, "fetching remote"));
@@ -781,7 +821,7 @@ namespace LocalPlaylistMaster.Backend
         /// </summary>
         /// <param name="tracks"></param>
         /// <returns></returns>
-        private async Task GrabIds(IEnumerable<Track> tracks)
+        internal async Task GrabIds(IEnumerable<Track> tracks)
         {
             using SQLiteCommand command = db.CreateCommand();
             command.CommandText = "SELECT Id FROM Tracks WHERE RemoteId = @RemoteId AND Remote = @Remote";
@@ -881,7 +921,7 @@ namespace LocalPlaylistMaster.Backend
             return updatedTrackCount;
         }
 
-        private async Task<int> OrphanTracks(IEnumerable<int> trackIds)
+        internal async Task<int> OrphanTracks(IEnumerable<int> trackIds)
         {
             using SQLiteCommand command = db.CreateCommand();
             var idPlaceholders = string.Join(",", trackIds.Select((_, index) => $"@Id{index}"));
@@ -1198,6 +1238,11 @@ namespace LocalPlaylistMaster.Backend
         public FileInfo GetTrackAudio(Track track)
         {
             return new FileInfo(Path.Combine(audioDir.FullName, $"{track.Id}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
+        }
+
+        public FileInfo GetTrackAudio(int trackId)
+        {
+            return new FileInfo(Path.Combine(audioDir.FullName, $"{trackId}.{ConversionHandeler.TARGET_FILE_EXTENSION}"));
         }
     }
 }
