@@ -7,7 +7,7 @@
 	Album TEXT,
 	Description TEXT,
 	Rating INTEGER,
-	TimeInSeconds INTEGER,
+	TimeInSeconds REAL,
 	Settings INTEGER,
 	MiscJson Text
 );

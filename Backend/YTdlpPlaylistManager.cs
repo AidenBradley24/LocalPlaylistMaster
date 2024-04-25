@@ -117,7 +117,7 @@ namespace LocalPlaylistMaster.Backend
         }
 
         public override async Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> 
-            FetchAndDownload(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds)
+            SyncRemote(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();

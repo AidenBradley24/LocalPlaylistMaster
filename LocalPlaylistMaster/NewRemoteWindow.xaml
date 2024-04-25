@@ -30,11 +30,7 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Type:" Width="100"/>
-                <ComboBox Width="280" SelectedIndex="0" SelectedValue="{Binding Type}" SelectedValuePath="Value">
-                    <ComboBoxItem Content="{Binding AutomaticTypeLabel, Mode=OneWay}" Tag="{x:Static localplaylistmasterbackend:RemoteType.UNINITIALIZED}"/>
-                    <ComboBoxItem Content="YouTube / video platform" Tag="{x:Static localplaylistmasterbackend:RemoteType.ytdlp_playlist}"/>
-                    <!-- Add more ComboBoxItems for each enum value -->
-                </ComboBox>
+                <ComboBox x:Name="typeBox" Width="280"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="10">
                 <Label Content="Additional Settings:" Width="120"/>

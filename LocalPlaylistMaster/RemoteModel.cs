@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using LocalPlaylistMaster.Backend;
 
 namespace LocalPlaylistMaster
@@ -47,8 +49,12 @@ namespace LocalPlaylistMaster
             get => remote.Type;
             set
             {
-                remote.Type = value;
-                OnPropertyChanged(nameof(Type));
+                if(remote.Type != value)
+                {
+                    Trace.WriteLine(value);
+                    remote.Type = value;
+                    OnPropertyChanged(nameof(Type));
+                }
             }
         }
 

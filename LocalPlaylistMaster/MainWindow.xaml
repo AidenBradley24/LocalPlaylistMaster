@@ -277,6 +277,9 @@
                                 <localplaylistmaster:TrackPlayer x:Name="trackPlayer"/>
                                 <Button Content="Edit Audio Track" Command="{Binding EditAudioTrackCommand}"/>
                             </StackPanel>
+                            <StackPanel Orientation="Vertical" Margin="10" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Button Content="Edit Concert Tracks" Command="{Binding EditConcertTracksCommand}"/>
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
                             <Button Command="{Binding RollbackCommand}" Content="Rollback" Padding="20,8" Margin="5" HorizontalAlignment="Left" 

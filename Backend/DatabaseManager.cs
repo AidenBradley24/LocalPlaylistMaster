@@ -184,8 +184,8 @@ namespace LocalPlaylistMaster.Backend
             try
             {
                 using SQLiteCommand command = db.CreateCommand();
-                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, TrackCount, Type, Settings) " +
-                    "VALUES (@Name, @Description, @Link, @TrackCount, @Type, @Settings); " +
+                command.CommandText = "INSERT INTO Remotes (Name, Description, Link, TrackCount, Type, Settings, MiscJson) " +
+                    "VALUES (@Name, @Description, @Link, @TrackCount, @Type, @Settings, @MiscJson); " +
                     "SELECT LAST_INSERT_ROWID();";
 
                 command.Parameters.AddWithValue("@Name", remote.Name);
@@ -194,6 +194,7 @@ namespace LocalPlaylistMaster.Backend
                 command.Parameters.AddWithValue("@TrackCount", 0);
                 command.Parameters.AddWithValue("@Type", (int)remote.Type);
                 command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
+                command.Parameters.AddWithValue("@MiscJson", remote.MiscJson);
                 object? id = await command.ExecuteScalarAsync();
                 await transaction.CommitAsync();
                 InvalidateRemoteCount();
@@ -759,7 +760,7 @@ namespace LocalPlaylistMaster.Backend
                 var downloadBlacklist = await GetExistingTrackRemoteIds(remote);
 
                 (Remote fetchedRemote, IEnumerable<Track> fetchedTracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) 
-                    = await manager.FetchAndDownload(reporter, downloadBlacklist);
+                    = await manager.SyncRemote(reporter, downloadBlacklist);
 
                 reporter.Report((ReportType.DetailText, "updating database"));
                 await IngestTracks(fetchedTracks);
@@ -888,8 +889,9 @@ namespace LocalPlaylistMaster.Backend
             Trace.Assert(fetchedRemote.Id == existingRemote.Id);
 
             using SQLiteCommand command = db.CreateCommand();
-            command.CommandText = "UPDATE Remotes SET TrackCount = @Count";
+            command.CommandText = "UPDATE Remotes SET TrackCount = @Count, MiscJson = @MiscJson";
             command.Parameters.AddWithValue("@Count", fetchedRemote.TrackCount);
+            command.Parameters.AddWithValue("@MiscJson", fetchedRemote.MiscJson);
 
             if (!existingRemote.Settings.HasFlag(RemoteSettings.locked))
             {

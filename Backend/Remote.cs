@@ -69,6 +69,8 @@ namespace LocalPlaylistMaster.Backend
 
         [GeneratedRegex("\\s+")]
         private static partial Regex WhiteSpace();
+
+        public bool IsConcert => Type == RemoteType.ytdlp_concert;
     }
 
     [Flags]
@@ -77,5 +79,10 @@ namespace LocalPlaylistMaster.Backend
         none = 0,
         removeMe = 1 << 0, 
         locked = 1 << 1,
+    }
+
+    public enum RemoteType
+    {
+        UNINITIALIZED = -1, ytdlp_playlist, ytdlp_concert
     }
 }

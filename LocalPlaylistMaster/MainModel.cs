@@ -343,6 +343,7 @@ namespace LocalPlaylistMaster
         public ICommand ExportSelectedPlaylistCommand { get; }
         public ICommand RollbackCommand { get; }
         public ICommand EditAudioTrackCommand { get; }
+        public ICommand EditConcertTracksCommand { get; }
 
         public MainModel(MainWindow host)
         {
@@ -408,6 +409,14 @@ namespace LocalPlaylistMaster
                 var tracks = propertyManager?.GetCollection<Track>();
                 if(tracks?.Count() != 1) return false;
                 if (tracks.First().Downloaded) return true;
+                return false;
+            });
+            EditConcertTracksCommand = new RelayCommand(EditConcertTracks, () => 
+            {
+                if (manager == null || !EditingRemote) return false;
+                var remotes = propertyManager?.GetCollection<Remote>();
+                if (remotes?.Count() != 1) return false;
+                if (remotes.First().IsConcert) return true;
                 return false;
             });
 
@@ -1290,6 +1299,22 @@ namespace LocalPlaylistMaster
             window.ShowDialog();
             RefreshTracks();
         }
+
+        public void EditConcertTracks()
+        {
+            var manager = AssertDb();
+            if (propertyManager?.MyType != typeof(Remote)) return;
+            if (HasPendingChanges()) return;
+            ClearSelection();
+
+            Remote remote = propertyManager.GetCollection<Remote>().First();
+            if (!remote.IsConcert) return;
+
+            ConcertEditWindow window = new(remote, manager, Host.dependencyProcessManager);
+            window.ShowDialog();
+            RefreshAll();
+        }
+
         #endregion
 
         #region Notifications

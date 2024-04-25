@@ -29,12 +29,12 @@ namespace LocalPlaylistMaster.Backend
         }
 
         public override async Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)>
-            FetchAndDownload(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds)
+            SyncRemote(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using (Process process = Dependencies.CreateDlpProcess())
             {
-                process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --write-description --no-playlist";
+                process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --write-description --no-playlist -f bestaudio";
                 process.StartInfo.CreateNoWindow = true;
                 process.Start();
                 await process.WaitForExitAsync();
@@ -58,13 +58,13 @@ namespace LocalPlaylistMaster.Backend
                 playlistName,
                 playlistDescription,
                 ExistingRemote.Link,
-                concert.trackRecords.Count + 1,
+                concert.TrackRecords.Count + 1,
                 ExistingRemote.Type,
                 ExistingRemote.Settings,
                 ExistingRemote.MiscJson
                 );
 
-            if (concert.trackRecords.Count > 0)
+            if (concert.TrackRecords.Count > 0)
             {
                 reporter.Report((ReportType.Message, new MessageBox()
                 {
@@ -77,21 +77,29 @@ namespace LocalPlaylistMaster.Backend
 
             using (Process process = Dependencies.CreateDlpProcess())
             {
-                process.StartInfo.Arguments = $"yt-dlp --dump-json \"{ExistingRemote.Link}\"";
+                MemoryStream stream = new();
+                FileInfo logFile = new(Path.Combine(downloadDir.FullName, "log"));
                 process.StartInfo.CreateNoWindow = true;
                 process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.UseShellExecute = false;
                 process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+                process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" --dump-json";
+                process.OutputDataReceived += (object sender, DataReceivedEventArgs args) =>
+                {
+                    if (string.IsNullOrEmpty(args.Data)) return;
+                    stream.Write(Encoding.UTF8.GetBytes(args.Data));
+                };
                 process.Start();
+                process.BeginOutputReadLine();
                 await process.WaitForExitAsync();
-                using var doc = await JsonDocument.ParseAsync(process.StandardOutput.BaseStream);
+                stream.Position = 0;
+                using var doc = await JsonDocument.ParseAsync(stream);
                 var chapters = doc.RootElement.GetProperty("chapters");
                 foreach (var chapter in chapters.EnumerateArray())
                 {
                     string title = chapter.GetProperty("title").GetString() ?? "";
                     TimeSpan startTime = TimeSpan.FromSeconds(chapter.GetProperty("start_time").GetDouble());
                     TimeSpan endTime = TimeSpan.FromSeconds(chapter.GetProperty("end_time").GetDouble());
-                    concert.trackRecords.Add(new(title, startTime, endTime, -1));
+                    concert.TrackRecords.Add(new(title, startTime, endTime, -1));
                 }
             }
 
@@ -105,7 +113,8 @@ namespace LocalPlaylistMaster.Backend
             {
                 Name = playlistName,
                 Description = playlistDescription,
-                RemoteId = Concert.CONCERT_TRACK
+                RemoteId = Concert.CONCERT_TRACK,
+                Remote = ExistingRemote.Id
             };
 
             return (newRemote, [concertTrack], downloadDir, fileMap);
@@ -114,11 +123,11 @@ namespace LocalPlaylistMaster.Backend
         public async Task Initialize()
         {
             Concert concert = ((IMiscJsonUser)ExistingRemote).GetProperty<Concert>("concert") ?? throw new Exception("Missing concert element");
-            if (concert.concertTrackId == -1)
+            if (concert.ConcertTrackId == -1)
             {
                 UserQuery query = new($"remote={ExistingRemote.Id}");
                 Track concertTrack = (await db.ExecuteUserQuery(query, 1, 0)).First();
-                concert.concertTrackId = concertTrack.Id;
+                concert.ConcertTrackId = concertTrack.Id;
                 ((IMiscJsonUser)ExistingRemote).SetProperty("concert", concert);
             }
         }
@@ -130,22 +139,22 @@ namespace LocalPlaylistMaster.Backend
         public async Task SplitAndCreate()
         {
             Concert concert = ((IMiscJsonUser)ExistingRemote).GetProperty<Concert>("concert") ?? throw new Exception("Missing concert element");
-            if (concert.concertTrackId == -1) throw new Exception("Not initialized");
+            if (concert.ConcertTrackId == -1) throw new Exception("Not initialized");
 
             {
-                UserQuery query = new($"remote={ExistingRemote.Id}&id!={concert.concertTrackId}");
+                UserQuery query = new($"remote={ExistingRemote.Id}&id!={concert.ConcertTrackId}");
                 IEnumerable<int> newOrphans = (await db.ExecuteUserQuery(query, int.MaxValue, 0)).Select(t => t.Id);
                 await db.OrphanTracks(newOrphans);
             }
 
-            FileInfo sourceFile = db.GetTrackAudio(concert.concertTrackId);
+            FileInfo sourceFile = db.GetTrackAudio(concert.ConcertTrackId);
             Dictionary<Concert.TrackRecord, Track> trackMap = [];
             Dictionary<Concert.TrackRecord, FileInfo> fileMap = [];
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory();
             Semaphore semaphore = new(0, Math.Max(1, Environment.ProcessorCount / 2));
             Mutex indexMutex = new();
             int index = 0;
-            await Parallel.ForEachAsync(concert.trackRecords, async (record, _) => 
+            await Parallel.ForEachAsync(concert.TrackRecords, async (record, _) => 
             {
                 indexMutex.WaitOne();
                 int i = index++;
@@ -188,7 +197,7 @@ namespace LocalPlaylistMaster.Backend
             await db.IngestTracks(trackMap.Values);
             await db.GrabIds(trackMap.Values);
             
-            foreach(var record in concert.trackRecords)
+            foreach(var record in concert.TrackRecords)
             {
                 Track track = trackMap[record];
                 record.TrackId = track.Id;

@@ -62,7 +62,8 @@ namespace LocalPlaylistMaster.Backend.Utilities
         {
             using var doc = JsonDocument.Parse(MiscJson);
             var root = doc.RootElement;
-            UpdateJson(root, name, JsonSerializer.SerializeToElement(property));
+            JsonElement element = JsonSerializer.SerializeToElement(property);
+            UpdateJson(root, name, element);
         }
     }
 }
