@@ -145,6 +145,7 @@ namespace LocalPlaylistMaster.Backend
                 UserQuery query = new($"remote={ExistingRemote.Id}");
                 Track concertTrack = (await db.ExecuteUserQuery(query, 1, 0)).First();
                 concert.ConcertTrackId = concertTrack.Id;
+                concert.EnsureNamesAreUnique();
                 MeConcert.SetConcert(concert);
             }
         }
@@ -165,8 +166,8 @@ namespace LocalPlaylistMaster.Backend
             }
 
             FileInfo sourceFile = db.GetTrackAudio(concert.ConcertTrackId);
-            Dictionary<Concert.TrackRecord, Track> trackMap = [];
-            Dictionary<Concert.TrackRecord, FileInfo> fileMap = [];
+            Dictionary<string, Track> trackMap = [];
+            Dictionary<string, FileInfo> fileMap = [];
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory();
             SemaphoreSlim semaphore = new(Math.Max(1, Environment.ProcessorCount / 2));
 
@@ -177,7 +178,7 @@ namespace LocalPlaylistMaster.Backend
                 FileInfo tempFile = new(Path.Combine(tempDir.FullName, $"{i}.mp3"));
 
                 var ffmpeg = Dependencies.CreateFfmpegProcess();
-                //ffmpeg.StartInfo.CreateNoWindow = true;
+                ffmpeg.StartInfo.CreateNoWindow = true;
                 string args = $"-y -ss {record.StartTime} -to {record.EndTime} -i \"{sourceFile.FullName}\" -c copy \"{tempFile.FullName}\"";
                 ffmpeg.StartInfo.Arguments = args;
 
@@ -207,23 +208,28 @@ namespace LocalPlaylistMaster.Backend
 
                 lock (track)
                 {
-                    trackMap.Add(record, track);
+                    trackMap.Add(record.Name, track);
                 }
 
                 lock (fileMap)
                 {
-                    fileMap.Add(record, tempFile);
+                    fileMap.Add(record.Name, tempFile);
                 }
             });
 
             await db.IngestTracks(trackMap.Values);
             await db.GrabIds(trackMap.Values);
-            
-            foreach(var record in concert.TrackRecords)
+
+            ExistingRemote.TrackCount = trackMap.Values.Count + 1;
+            await db.UpdateRemotes([ExistingRemote]);
+
+            foreach (var record in concert.TrackRecords)
             {
-                Track track = trackMap[record];
+                Track track = trackMap[record.Name];
                 record.TrackId = track.Id;
-                File.Move(fileMap[record].FullName, db.GetTrackAudio(track.Id).FullName);
+                string source = fileMap[record.Name].FullName;
+                string destination = db.GetTrackAudio(track.Id).FullName;
+                File.Move(source, destination);
             }
 
             tempDir.Delete(true);
