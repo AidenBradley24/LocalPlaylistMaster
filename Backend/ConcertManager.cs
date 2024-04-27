@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using LocalPlaylistMaster.Backend.Utilities;
+using System.Text.Json.Serialization;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -7,6 +8,15 @@ namespace LocalPlaylistMaster.Backend
     /// </summary>
     public interface IConcertManager
     {
+        /// <summary>
+        /// Json user with a "concert" element. Usually <see cref="Remote"/>.
+        /// </summary>
+        public IMiscJsonUser JsonUser { get; }
+
+        /// <summary>
+        /// Ensures concert is ready for visualization and <seealso cref="SplitAndCreate"/>.
+        /// </summary>
+        /// <returns></returns>
         public Task Initialize();
 
         /// <summary>
@@ -14,6 +24,21 @@ namespace LocalPlaylistMaster.Backend
         /// </summary>
         /// <returns></returns>
         public Task SplitAndCreate();
+
+        public sealed Concert GetConcert()
+        {
+            return TryGetConcert() ?? throw new Exception("concert was not found!");
+        }
+
+        public sealed Concert? TryGetConcert()
+        {
+            return JsonUser.GetProperty<Concert>("concert");
+        }
+
+        public sealed void SetConcert(Concert concert)
+        {
+            JsonUser.SetProperty("concert", concert);
+        }
     }
 
     public record Concert

@@ -18,6 +18,9 @@ namespace LocalPlaylistMaster.Backend
         public override bool CanDownload => false;
         public override bool CanSync => true;
 
+        public IMiscJsonUser JsonUser { get => ExistingRemote; }
+        public IConcertManager MeConcert { get => this; }
+
         public override async Task<(DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs)
         {
             throw new NotImplementedException();
@@ -52,7 +55,7 @@ namespace LocalPlaylistMaster.Backend
 
             FileInfo audioFile = files.Where(f => !f.Name.EndsWith(".description")).First();
 
-            Concert concert = ((IMiscJsonUser)ExistingRemote).GetProperty<Concert>("concert") ?? new Concert();
+            Concert concert = MeConcert.TryGetConcert() ?? new Concert();
             Remote newRemote = new(
                 ExistingRemote.Id,
                 playlistName,
@@ -103,7 +106,7 @@ namespace LocalPlaylistMaster.Backend
                 }
             }
 
-            ((IMiscJsonUser)newRemote).SetProperty("concert", concert);
+            MeConcert.SetConcert(concert);
             var fileMap = new Dictionary<string, FileInfo>
             {
                 { Concert.CONCERT_TRACK, audioFile }
@@ -122,13 +125,13 @@ namespace LocalPlaylistMaster.Backend
 
         public async Task Initialize()
         {
-            Concert concert = ((IMiscJsonUser)ExistingRemote).GetProperty<Concert>("concert") ?? throw new Exception("Missing concert element");
+            Concert concert = MeConcert.GetConcert();
             if (concert.ConcertTrackId == -1)
             {
                 UserQuery query = new($"remote={ExistingRemote.Id}");
                 Track concertTrack = (await db.ExecuteUserQuery(query, 1, 0)).First();
                 concert.ConcertTrackId = concertTrack.Id;
-                ((IMiscJsonUser)ExistingRemote).SetProperty("concert", concert);
+                MeConcert.SetConcert(concert);
             }
         }
 
@@ -138,7 +141,7 @@ namespace LocalPlaylistMaster.Backend
         /// <returns></returns>
         public async Task SplitAndCreate()
         {
-            Concert concert = ((IMiscJsonUser)ExistingRemote).GetProperty<Concert>("concert") ?? throw new Exception("Missing concert element");
+            Concert concert = MeConcert.GetConcert();
             if (concert.ConcertTrackId == -1) throw new Exception("Not initialized");
 
             {
@@ -151,25 +154,30 @@ namespace LocalPlaylistMaster.Backend
             Dictionary<Concert.TrackRecord, Track> trackMap = [];
             Dictionary<Concert.TrackRecord, FileInfo> fileMap = [];
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory();
-            Semaphore semaphore = new(0, Math.Max(1, Environment.ProcessorCount / 2));
-            Mutex indexMutex = new();
-            int index = 0;
+            SemaphoreSlim semaphore = new(Math.Max(1, Environment.ProcessorCount / 2));
+
+            int index = -1;
             await Parallel.ForEachAsync(concert.TrackRecords, async (record, _) => 
             {
-                indexMutex.WaitOne();
-                int i = index++;
-                indexMutex.ReleaseMutex();
+                int i = Interlocked.Increment(ref index);
                 FileInfo tempFile = new(Path.Combine(tempDir.FullName, $"{i}.mp3"));
 
                 var ffmpeg = Dependencies.CreateFfmpegProcess();
-                ffmpeg.StartInfo.CreateNoWindow = true;
+                //ffmpeg.StartInfo.CreateNoWindow = true;
                 string args = $"-y -ss {record.StartTime} -to {record.EndTime} -i \"{sourceFile.FullName}\" -c copy \"{tempFile.FullName}\"";
                 ffmpeg.StartInfo.Arguments = args;
 
-                semaphore.WaitOne();
-                ffmpeg.Start();
-                await ffmpeg.WaitForExitAsync(_);
-                semaphore.Release();
+                await semaphore.WaitAsync(_);
+
+                try
+                {
+                    ffmpeg.Start();
+                    await ffmpeg.WaitForExitAsync(_);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
 
                 Track track = new()
                 {

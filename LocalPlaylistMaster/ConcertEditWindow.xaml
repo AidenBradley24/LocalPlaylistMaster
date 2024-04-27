@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LocalPlaylistMaster"
         mc:Ignorable="d"
-        Title="ConcertEditWindow" Height="450" Width="800">
+        Title="ConcertEditWindow" Height="500" Width="800">
     <DockPanel>
         <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom" DockPanel.Dock="Top">
-            <ScrollViewer>
-                <DataGrid ItemsSource="{Binding TrackRecords}" AutoGenerateColumns="False">
+            <ScrollViewer MaxHeight="250" MinHeight="250">
+                <DataGrid ItemsSource="{Binding TrackRecords}" AutoGenerateColumns="False" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
                         <DataGridTemplateColumn Header="Start Time">

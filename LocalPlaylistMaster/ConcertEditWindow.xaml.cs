@@ -17,9 +17,10 @@ namespace LocalPlaylistMaster
         private readonly DatabaseManager db;
         private readonly Remote remote;
         private readonly DependencyProcessManager processes;
-        private readonly IConcertManager manager;
-        private readonly Concert concert;
-        private readonly Track concertTrack;
+
+        private IConcertManager? manager;
+        private Concert? concert;
+        private Track? concertTrack;
 
         private ObservableCollection<Concert.TrackRecord> trackRecords;
         public ObservableCollection<Concert.TrackRecord> TrackRecords
@@ -42,22 +43,9 @@ namespace LocalPlaylistMaster
             trackPlayer.Db = db;
             Title = $"Edit Concert ({remote.Name})";
 
-            {
-                var task = db.GetRemoteManager(remote.Id);
-                task.Wait();
-                manager = (IConcertManager)(task.Result ?? throw new Exception());
-                concert = GetConcert();
-            }
-            {
-                UserQuery qry = new($"id={concert.ConcertTrackId}");
-                var task = db.ExecuteUserQuery(qry, 1, 0);
-                task.Wait();
-                concertTrack = task.Result.First();
-            }
+            Task.Run(Startup);
 
-            trackPlayer.ChangeTrack(concertTrack);
-            trackRecords = new(concert.TrackRecords);
-            OnPropertyChanged(nameof(TrackRecords));
+
 
             //startTime = TimeSpan.Zero;
             //endTime = TimeSpan.FromSeconds(concertTrack.TimeInSeconds);
@@ -81,6 +69,31 @@ namespace LocalPlaylistMaster
             //trackPlayer.RedrawMarkers();
         }
 
+        private async Task Startup()
+        {
+            manager = await db.GetRemoteManager(remote.Id) as IConcertManager;
+            if (manager == null)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("Error", "Concert manager could not initialize.", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Close();
+                });
+                return;
+            }
+
+            await manager.Initialize();   
+            concert = manager.GetConcert();
+            concertTrack = (await db.ExecuteUserQuery(new($"id={concert.ConcertTrackId}"), 1, 0)).First();
+
+            Dispatcher.Invoke(() =>
+            {
+                trackPlayer.ChangeTrack(concertTrack);
+                trackRecords = new(concert.TrackRecords);
+                OnPropertyChanged(nameof(TrackRecords));
+            });
+        }
+
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -96,14 +109,23 @@ namespace LocalPlaylistMaster
                 return;
             }
 
-            _ = ApplyTask();
+            Task.Run(ApplyTask);
             IsEnabled = false;
         }
 
         private async Task ApplyTask()
         {
-            
+            if(manager == null)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("Error", "Concert manager did not initialize.", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Close();
+                });
+                return;
+            }
 
+            await manager.SplitAndCreate();
             Dispatcher.Invoke(Close);
         }
 
@@ -115,16 +137,6 @@ namespace LocalPlaylistMaster
         private void ApplyButton(object sender, RoutedEventArgs e)
         {
             Apply();
-        }
-
-        private Concert GetConcert()
-        {
-            return ((IMiscJsonUser)remote).GetProperty<Concert>("concert") ?? throw new Exception();
-        }
-
-        private void SetConcert(Concert concert)
-        {
-            ((IMiscJsonUser)remote).SetProperty("concert", concert);
         }
     }
 }
