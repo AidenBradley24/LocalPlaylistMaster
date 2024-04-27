@@ -10,7 +10,7 @@ namespace LocalPlaylistMaster.Backend.Utilities
     {
         private string titleText = "";
         private string detailText = "";
-        private int progress = 0;
+        private int progress = -1;
         private MessageBox? message;
 
         public string TitleText
@@ -35,7 +35,7 @@ namespace LocalPlaylistMaster.Backend.Utilities
             }
         }
 
-        public int Progress
+        public int Progress // if negative => indeterminate
         {
             get => progress;
             internal set

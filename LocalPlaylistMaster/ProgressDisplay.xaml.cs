@@ -36,6 +36,18 @@ namespace LocalPlaylistMaster
                 messageVisible = false;
                 if(closing) Close();
             }
+            else if(e.PropertyName == nameof(ProgressModel.Progress))
+            {
+                if(progressModel.Progress < 0)
+                {
+                    progressBar.IsIndeterminate = true;
+                }
+                else
+                {
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Value = progressModel.Progress;
+                }
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

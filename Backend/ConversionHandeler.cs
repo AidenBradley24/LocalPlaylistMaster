@@ -33,6 +33,7 @@ namespace LocalPlaylistMaster.Backend
         {
             List<Task> tasks = new(MAX_PROCESS_COUNT);
             int totalTaskCount = argumentQueue.Count;
+            reporter.Report((ReportType.Progress, -1));
 
             while (argumentQueue.Count > 0 || tasks.Count > 0)
             {

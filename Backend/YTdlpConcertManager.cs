@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using LocalPlaylistMaster.Backend.Utilities;
@@ -39,11 +40,24 @@ namespace LocalPlaylistMaster.Backend
             {
                 process.StartInfo.Arguments = $"\"{ExistingRemote.Link}\" -P \"{downloadDir.FullName}\" --write-description --no-playlist -f bestaudio";
                 process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.OutputDataReceived += (object sender, DataReceivedEventArgs args) =>
+                {
+                    if (string.IsNullOrEmpty(args.Data)) return;
+                    if (!args.Data.StartsWith("[download]")) return;
+                    string percentageString = args.Data.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1].Trim();
+                    if (!percentageString.EndsWith('%')) return;
+                    int percent = (int)double.Parse(percentageString.TrimEnd('%'));
+                    reporter.Report((ReportType.Progress, percent));
+                    reporter.Report((ReportType.DetailText, $"Downloading audio: {percentageString}"));
+                };
                 process.Start();
+                process.BeginOutputReadLine();
                 await process.WaitForExitAsync();
             }
 
             reporter.Report((ReportType.DetailText, "reading downloaded files"));
+            reporter.Report((ReportType.Progress, -1));
 
             var files = downloadDir.EnumerateFiles();
 
@@ -106,7 +120,7 @@ namespace LocalPlaylistMaster.Backend
                 }
             }
 
-            MeConcert.SetConcert(concert);
+            ((IMiscJsonUser)newRemote).SetProperty("concert", concert);
             var fileMap = new Dictionary<string, FileInfo>
             {
                 { Concert.CONCERT_TRACK, audioFile }

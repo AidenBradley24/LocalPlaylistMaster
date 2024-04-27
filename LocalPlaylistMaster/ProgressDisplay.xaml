@@ -16,7 +16,7 @@
     <StackPanel Orientation="Vertical">
         <Rectangle Height="10"/>
         <TextBlock Text="{Binding TitleText, Mode=OneWay}" Padding="25,0" FontSize="15"/>
-        <ProgressBar Width="250" Height="35" Value="{Binding Progress, Mode=OneWay}" Margin="5"/>
+        <ProgressBar x:Name="progressBar" Width="250" Height="35" Margin="5"/>
         <TextBlock Text="{Binding DetailText, Mode=OneWay}" Height="100" Margin="10" TextWrapping="Wrap" />
     </StackPanel>
 </Window>
