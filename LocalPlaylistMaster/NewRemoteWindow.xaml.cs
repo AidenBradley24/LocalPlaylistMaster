@@ -96,6 +96,7 @@ namespace LocalPlaylistMaster
                 var reporter = progressModel.GetProgressReporter();
                 progressDisplayWindow.Show();
                 IsEnabled = false;
+                Hide();
 
                 await Task.Run(async () =>
                 {

@@ -154,8 +154,10 @@ namespace LocalPlaylistMaster.Backend
         /// Split concert track into its respective pieces. Orphans the old tracks.
         /// </summary>
         /// <returns></returns>
-        public async Task SplitAndCreate()
+        public async Task SplitAndCreate(IProgress<(ReportType type, object report)> reporter)
         {
+            reporter.Report((ReportType.TitleText, "Splitting concert"));
+
             Concert concert = MeConcert.GetConcert();
             if (concert.ConcertTrackId == -1) throw new Exception("Not initialized");
 
@@ -170,8 +172,9 @@ namespace LocalPlaylistMaster.Backend
             Dictionary<string, FileInfo> fileMap = [];
             DirectoryInfo tempDir = Directory.CreateTempSubdirectory();
             SemaphoreSlim semaphore = new(Math.Max(1, Environment.ProcessorCount / 2));
-
+            int count = concert.TrackRecords.Count;
             int index = -1;
+            int completed = 0;
             await Parallel.ForEachAsync(concert.TrackRecords, async (record, _) => 
             {
                 int i = Interlocked.Increment(ref index);
@@ -215,7 +218,15 @@ namespace LocalPlaylistMaster.Backend
                 {
                     fileMap.Add(record.Name, tempFile);
                 }
+
+                lock (reporter)
+                {
+                    reporter.Report((ReportType.DetailText, $"{++completed}/{count}"));
+                    reporter.Report((ReportType.Progress, (int)((float)completed / count * 100)));
+                }
             });
+
+            reporter.Report((ReportType.DetailText, "finishing"));
 
             await db.IngestTracks(trackMap.Values);
             await db.GrabIds(trackMap.Values);

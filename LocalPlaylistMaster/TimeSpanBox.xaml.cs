@@ -12,8 +12,6 @@ namespace LocalPlaylistMaster
     {
         public static readonly DependencyProperty TimeProperty = DependencyProperty.Register(
             "Time", typeof(TimeSpan), typeof(TimeSpanBox), new PropertyMetadata(TimeSpan.Zero, new PropertyChangedCallback(OnSpanPropertyChanged)));
-        public static readonly DependencyProperty FormatProperty = DependencyProperty.Register(
-            "Format", typeof(string), typeof(TimeSpanBox), new PropertyMetadata(@"mm\:ss"));
 
         private static void OnSpanPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -27,10 +25,8 @@ namespace LocalPlaylistMaster
             set => SetValue(TimeProperty, value);
         }
 
-        public string Format
-        {
-            get => (string)GetValue(FormatProperty);
-        }
+        private const string MINUTE_FORMAT = @"mm\:ss";
+        private const string HOUR_FORMAT = @"hh\:mm\:ss";
 
         public TimeSpanBox()
         {
@@ -58,19 +54,21 @@ namespace LocalPlaylistMaster
 
         private void FinishInput()
         {
-            if (TimeSpan.TryParseExact(textBox.Text, Format, CultureInfo.InvariantCulture, out var timeSpan))
+            if (TimeSpan.TryParse(textBox.Text, CultureInfo.InvariantCulture, out var timeSpan))
             {
                 Time = timeSpan;
             }
             else
             {
-                textBox.Text = Time.ToString(Format, CultureInfo.InvariantCulture);
+                string format = Time.TotalHours >= 1 ? HOUR_FORMAT : MINUTE_FORMAT;
+                textBox.Text = Time.ToString(format, CultureInfo.InvariantCulture);
             }
         }
 
         private void Update()
         {
-            textBox.Text = Time.ToString(Format, CultureInfo.InvariantCulture);
+            string format = Time.TotalHours >= 1 ? HOUR_FORMAT : MINUTE_FORMAT;
+            textBox.Text = Time.ToString(format, CultureInfo.InvariantCulture);
         }
     }
 }

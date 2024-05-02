@@ -1,5 +1,7 @@
 ﻿using LocalPlaylistMaster.Backend.Utilities;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
+using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
 {
@@ -23,7 +25,7 @@ namespace LocalPlaylistMaster.Backend
         /// Split concert track into its respective pieces. Orphans the old tracks.
         /// </summary>
         /// <returns></returns>
-        public Task SplitAndCreate();
+        public Task SplitAndCreate(IProgress<(ReportType type, object report)> reporter);
 
         public sealed Concert GetConcert()
         {
@@ -50,8 +52,12 @@ namespace LocalPlaylistMaster.Backend
         public int ConcertTrackId { get => concertTrackId; set => concertTrackId = value; }
         public List<TrackRecord> TrackRecords { get => trackRecords; set => trackRecords = value; }
 
-        public record TrackRecord
+        public record TrackRecord : INotifyPropertyChanged
         {
+            private TimeSpan startTime;
+            private TimeSpan endTime;
+            private int trackId;
+
             public TrackRecord(string name, TimeSpan startTime, TimeSpan endTime, int trackId)
             {
                 Name = name;
@@ -61,12 +67,43 @@ namespace LocalPlaylistMaster.Backend
             }
 
             public string Name { get; set; }
-            [JsonIgnore] public TimeSpan StartTime { get; set; }
-            [JsonIgnore] public TimeSpan EndTime { get; set; }
-            public int TrackId { get; set; }
+            [JsonIgnore] public TimeSpan StartTime
+            {
+                get => startTime; 
+                set
+                {
+                    startTime = value;
+                    OnPropertyChanged(nameof(StartTime));
+                }
+            }
+            [JsonIgnore] public TimeSpan EndTime
+            {
+                get => endTime; 
+                set
+                {
+                    endTime = value;
+                    OnPropertyChanged(nameof(StartTime));
+                }
+            }
+            public int TrackId
+            {
+                get => trackId; 
+                set
+                {
+                    trackId = value;
+                    OnPropertyChanged(nameof(TrackId));
+                }
+            }
 
             public double Start { get => StartTime.TotalSeconds; set => StartTime = TimeSpan.FromSeconds(value); }
             public double End { get => EndTime.TotalSeconds; set => EndTime = TimeSpan.FromSeconds(value); }
+
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
+            public event PropertyChangedEventHandler? PropertyChanged;
         }
 
         public void EnsureNamesAreUnique()

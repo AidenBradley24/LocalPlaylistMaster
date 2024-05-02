@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using static LocalPlaylistMaster.Extensions.StringCleaning;
 
 namespace LocalPlaylistMaster
 {
@@ -18,9 +19,11 @@ namespace LocalPlaylistMaster
         public DatabaseManager? Db { get; set; }
 
         public delegate void TimeChangedCallback(TimeSpan time);
+        public delegate void SelectionCallback();
 
         private readonly Dictionary<string, TimeSpan> markerTimes = [];
-        private readonly Dictionary<string, TimeChangedCallback> callbacks = [];
+        private readonly Dictionary<string, TimeChangedCallback> timeCallbacks = [];
+        private readonly Dictionary<string, SelectionCallback> selectionCallbacks = [];
 
         public TrackPlayer()
         {
@@ -125,14 +128,23 @@ namespace LocalPlaylistMaster
             Canvas.SetLeft(element, MarkerTimeToCanvasPosition(time));
         }
 
-        public void CreateMarker(string name, Brush fill, TimeSpan initialTime, TimeChangedCallback callback)
+        public void CreateMarker(string name, Brush fill, int order, TimeSpan initialTime, TimeChangedCallback timeCallback, SelectionCallback? selectionCallback = null)
         {
+            const int TEXT_HEIGHT = 10;
+
+            name = CleanElementName(name);
             Grid markerElement = new()
             {
                 Width = 12,
-                Height = 25,
-                Name = name
+                Height = 25 + order * TEXT_HEIGHT,
+                Name = name,
+                Background = Brushes.Transparent
             };
+
+            if(selectionCallback != null)
+            {
+                selectionCallbacks.Add(name, selectionCallback);
+            }
 
             markerElement.MouseDown += MarkerMouseDown;
             markerElement.MouseMove += MarkerMouseMove;
@@ -149,7 +161,7 @@ namespace LocalPlaylistMaster
                 FontSize = 5,
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
-                Height = 10,
+                Height = TEXT_HEIGHT,
                 Background = fill,
                 Text = name,
                 Margin = new Thickness(0, -18, 0, 0)
@@ -160,8 +172,17 @@ namespace LocalPlaylistMaster
             Canvas.SetLeft(markerElement, MarkerTimeToCanvasPosition(initialTime));
             markerTimes.Add(name, initialTime);
             Markers.RegisterName(name, markerElement);
-            callbacks.Add(name, callback);
+            timeCallbacks.Add(name, timeCallback);
             Task.Delay(250).ContinueWith(t => Dispatcher.Invoke(RedrawMarkers)); // TODO this is not a good solution
+        }
+
+        public void ClearMarkers()
+        {
+            string[] markerNames = [.. markerTimes.Keys];
+            foreach(string name in markerNames)
+            {
+                RemoveMarker(name);
+            }
         }
 
         public void RemoveMarker(string marker)
@@ -171,7 +192,8 @@ namespace LocalPlaylistMaster
             UIElement childToRemove = (UIElement)Markers.FindName(marker);
             Markers.Children.Remove(childToRemove);
             Markers.UnregisterName(marker);
-            callbacks.Remove(marker);
+            timeCallbacks.Remove(marker);
+            selectionCallbacks.Remove(marker);
         }
 
         private TimeSpan CanvasPositionToMarkerTime(double canvasPosition)
@@ -185,7 +207,6 @@ namespace LocalPlaylistMaster
             return markerTime / mediaElement.NaturalDuration.TimeSpan * (timelineSlider.ActualWidth - 10);
         }
 
-        // Variables to track dragging behavior
         private bool isDragging = false;
         private Point startPosition;
 
@@ -196,6 +217,11 @@ namespace LocalPlaylistMaster
                 isDragging = true;
                 ((UIElement)sender).CaptureMouse();
                 startPosition = e.GetPosition(timelineSlider);
+                string name = ((FrameworkElement)sender).Name;
+                if (selectionCallbacks.TryGetValue(name, out var callback))
+                {
+                    callback.Invoke();
+                }
             }
         }
 
@@ -210,7 +236,7 @@ namespace LocalPlaylistMaster
                 double rightEdge = timelineSlider.ActualWidth - 10;
                 double clampedLeft = Math.Clamp(left, 0, rightEdge);
                 Canvas.SetLeft(marker, clampedLeft);
-                startPosition = new Point(currentPosition.X + clampedLeft - left, currentPosition.Y);
+                startPosition = new Point(clampedLeft, currentPosition.Y);
             }
         }
 
@@ -225,7 +251,7 @@ namespace LocalPlaylistMaster
                 TimeSpan time = CanvasPositionToMarkerTime(left);
                 string name = ((FrameworkElement)sender).Name;
                 markerTimes[name] = time;
-                callbacks[name].Invoke(time);
+                timeCallbacks[name].Invoke(time);
             }
         }
 
@@ -238,6 +264,16 @@ namespace LocalPlaylistMaster
                 double pos = MarkerTimeToCanvasPosition(time);
                 Canvas.SetLeft(element, pos);
             }
+        }
+
+        public TimeSpan GetCurrentMediaTime()
+        {
+            return mediaElement.Position;
+        }
+
+        public TimeSpan GetCurrentMediaLength()
+        {
+            return mediaElement.NaturalDuration.TimeSpan;
         }
 
         private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)

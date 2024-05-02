@@ -5,12 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LocalPlaylistMaster"
         mc:Ignorable="d"
-        Title="ConcertEditWindow" Height="500" Width="800">
+        Title="ConcertEditWindow" Height="600" Width="800">
     <DockPanel>
         <StackPanel Orientation="Vertical" Margin="50" VerticalAlignment="Bottom" DockPanel.Dock="Top">
-            <ScrollViewer MaxHeight="250" MinHeight="250">
-                <DataGrid ItemsSource="{Binding TrackRecords}" AutoGenerateColumns="False" HeadersVisibility="Column">
+            <Grid MaxHeight="300" MinHeight="300">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DataGrid x:Name="trackGrid" ItemsSource="{Binding TrackRecords}" AutoGenerateColumns="False" HeadersVisibility="Column" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" Grid.Row="1" Grid.Column="0"
+                          SelectionMode="Single">
                     <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding TrackId}"/>
                         <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
                         <DataGridTemplateColumn Header="Start Time">
                             <DataGridTemplateColumn.CellTemplate>
@@ -28,7 +34,13 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-            </ScrollViewer>
+            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Button Content="Add Row" Command="{Binding AddRowCommand}" Margin="5"/>
+                <Button Content="Remove Row" Command="{Binding RemoveRowCommand}" Margin="5"/>
+                <Button Content="Jump to Start" Command="{Binding JumpToStartCommand}" Margin="5"/>
+                <Button Content="Jump to End" Command="{Binding JumpToEndCommand}" Margin="5"/>
+            </StackPanel>
             <local:TrackPlayer x:Name="trackPlayer"/>
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">

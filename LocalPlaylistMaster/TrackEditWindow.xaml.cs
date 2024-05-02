@@ -83,12 +83,12 @@ namespace LocalPlaylistMaster
             ResetEndTimeCommand = new RelayCommand(() => EndTime = tempEndTime);
             ResetVolumeCommand = new RelayCommand(() => Volume = 1);
 
-            trackPlayer.CreateMarker(START_MARKER, Brushes.LightGreen, startTime, (t) =>
+            trackPlayer.CreateMarker(START_MARKER, Brushes.LightGreen, 0, startTime, (t) =>
             {
                 startTime = t;
                 OnPropertyChanged(nameof(StartTime));
             });
-            trackPlayer.CreateMarker(END_MARKER, Brushes.LightPink, endTime, (t) =>
+            trackPlayer.CreateMarker(END_MARKER, Brushes.LightPink, 1, endTime, (t) =>
             {
                 endTime = t;
                 OnPropertyChanged(nameof(EndTime));
