@@ -4,10 +4,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Threading;
 using System.Diagnostics;
 using static LocalPlaylistMaster.Extensions.StringCleaning;
 using static LocalPlaylistMaster.Backend.Utilities.Timestamps;
+using System.Timers;
 
 namespace LocalPlaylistMaster
 {
@@ -16,7 +16,7 @@ namespace LocalPlaylistMaster
     /// </summary>
     public sealed partial class TrackPlayer : UserControl, IDisposable
     {
-        private readonly DispatcherTimer timer;
+        private readonly System.Timers.Timer timer;
         private bool isPlaying = false;
         public DatabaseManager? Db { get; set; }
         public DependencyProcessManager? ProcessManager { get; set; }
@@ -35,14 +35,14 @@ namespace LocalPlaylistMaster
         private bool isDragging = false;
         private Point startPosition;
 
+        private const int TIMER_INTERVAL = 250;
+
         public TrackPlayer()
         {
             InitializeComponent();
-            timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(0.2),
-            };
-            timer.Tick += Tick;
+            timer = new(TIMER_INTERVAL);
+            timer.Elapsed += Tick;
+            timer.AutoReset = true;
             togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
         }
 
@@ -60,7 +60,6 @@ namespace LocalPlaylistMaster
             ffplay = ProcessManager.CreateFFplayProcess();
             ffplay.StartInfo.CreateNoWindow = true;
             timelineSlider.Maximum = track.TimeInSeconds;
-            ffplay.Exited += (_, _) => Stop();
             durationText.Text = DisplayTime(track.Length);
             currentTimeText.Text = DisplayTime(TimeSpan.Zero);
             myTrack = track;
@@ -69,17 +68,18 @@ namespace LocalPlaylistMaster
         private void AdjustFFplay()
         {
             if (ffplay == null || Db == null || myTrack == null) return;
-            ffplay.StartInfo.Arguments = $"-i \"{Db.GetTrackAudio(myTrack).FullName}\" -autoexit -nodisp -ss {currentTime.TotalSeconds}";
+            ffplay.StartInfo.Arguments = $"-i \"{Db.GetTrackAudio(myTrack).FullName}\" -nodisp -ss {currentTime.TotalSeconds}";
             ffplay.Start();
             timer.Start();
         }
 
         private void Tick(object? sender, EventArgs e)
         {
+            currentTime += TimeSpan.FromMilliseconds(TIMER_INTERVAL);
             Dispatcher.Invoke(() =>
             {
-                currentTime += timer.Interval;
                 timelineSlider.Value = currentTime.TotalSeconds;
+                if (currentTime >= myTrack?.Length) Stop();
             });
         }
 
