@@ -7,6 +7,8 @@ using System.IO;
 using LocalPlaylistMaster.Backend.Utilities;
 using System.Collections.ObjectModel;
 using static LocalPlaylistMaster.TrackPlayer;
+using System.Xml.Linq;
+using Microsoft.Win32;
 
 namespace LocalPlaylistMaster
 {
@@ -38,6 +40,7 @@ namespace LocalPlaylistMaster
         public ICommand RemoveRowCommand { get; }
         public ICommand JumpToStartCommand { get; }
         public ICommand JumpToEndCommand { get; }
+        public ICommand ImportFromFileCommand { get; }
 
         public ConcertEditWindow(Remote remote, DatabaseManager db, DependencyProcessManager processes)
         {
@@ -53,6 +56,7 @@ namespace LocalPlaylistMaster
             RemoveRowCommand = new RelayCommand(RemoveRow, () => TrackRecords != null && trackGrid.SelectedItem != null);
             JumpToStartCommand = new RelayCommand(JumpToStart, () => TrackRecords != null && trackGrid.SelectedItem != null);
             JumpToEndCommand = new RelayCommand(JumpToEnd, () => TrackRecords != null && trackGrid.SelectedItem != null);
+            ImportFromFileCommand = new RelayCommand(ImportFromFile);
 
             Task.Run(Startup);     
         }
@@ -145,12 +149,13 @@ namespace LocalPlaylistMaster
 
         private void AddRow()
         {
-            if (TrackRecords == null || trackGrid.SelectedItem == null) return;
+            if (TrackRecords == null) return;
             trackGrid.SelectedItem = null;
             var record = new Concert.TrackRecord("NEW TRACK", trackPlayer.GetCurrentMediaTime(), trackPlayer.GetCurrentMediaLength(), -1);
             TrackRecords.Add(record);
             RecalcMarkers();
             trackGrid.SelectedItem = record;
+            OnPropertyChanged(nameof(TrackRecords));
         }
 
         private void RemoveRow()
@@ -160,6 +165,7 @@ namespace LocalPlaylistMaster
             trackGrid.SelectedItem = null;
             TrackRecords.Remove(selection);
             RecalcMarkers();
+            OnPropertyChanged(nameof(TrackRecords));
         }
 
         private void JumpToStart()
@@ -185,12 +191,47 @@ namespace LocalPlaylistMaster
                 record.TrackId = ++id;
                 void selectionCallback() 
                 {
-                    trackGrid.SelectedItem = null;
                     trackGrid.SelectedItem = record;
                 }
                 trackPlayer.CreateMarker($"S_{id}", Brushes.Green, 0, record.StartTime, t => record.StartTime = t, selectionCallback);
                 trackPlayer.CreateMarker($"E_{id}", Brushes.Red, 1, record.EndTime, t => record.EndTime = t, selectionCallback);
             }
+        }
+
+        private void ImportFromFile()
+        {
+            if (concert == null || concertTrack == null || db == null) return;
+
+            var result = MessageBox.Show("Import a txt file with the beginning timestamps in this format.\n\ntimestamp - name of track (newline)\ntimestamp - name of track",
+                "Import from file", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.Cancel) return;
+            result = MessageBox.Show("Would you like to clear existing tracks?", "Import from file", MessageBoxButton.YesNoCancel);
+            if (result == MessageBoxResult.Cancel) return;
+
+            OpenFileDialog openFileDialog = new()
+            {
+                Multiselect = false,
+                ValidateNames = true,
+                Title = "Select a file containing the track information",
+                AddExtension = true,
+                Filter = "*.txt|*",
+            };
+
+            if (openFileDialog.ShowDialog(this) ?? false)
+            {
+                if (db == null) return;
+                FileInfo file = new(openFileDialog.FileName);
+                using Stream stream = file.OpenRead();
+                concert.Import(stream, concertTrack.Length, result == MessageBoxResult.Yes);
+                ((IMiscJsonUser)remote).SetProperty("concert", concert);
+                Task.Run(ApplyRemote);
+            }
+        }
+
+        private async Task ApplyRemote()
+        {
+            await db.UpdateRemotes([remote]);
+            await Startup();
         }
     }
 }

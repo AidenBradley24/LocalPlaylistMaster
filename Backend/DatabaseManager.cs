@@ -1037,7 +1037,8 @@ namespace LocalPlaylistMaster.Backend
                 sb.Append("Description = @Description, ");
                 sb.Append("Link = @Link, ");
                 sb.Append("TrackCount = @TrackCount, ");
-                sb.Append("Settings = @Settings ");
+                sb.Append("Settings = @Settings, ");
+                sb.Append("MiscJson = @MiscJson ");
                 sb.Append("WHERE Id = @Id");
                 command.CommandText = sb.ToString();
 
@@ -1049,6 +1050,7 @@ namespace LocalPlaylistMaster.Backend
                     command.Parameters.AddWithValue("@Link", remote.Link);
                     command.Parameters.AddWithValue("@TrackCount", remote.TrackCount);
                     command.Parameters.AddWithValue("@Settings", (int)remote.Settings);
+                    command.Parameters.AddWithValue("@MiscJson", remote.MiscJson);
                     command.Parameters.AddWithValue("@Id", remote.Id);
 
                     updatedCount += await command.ExecuteNonQueryAsync();

@@ -40,6 +40,7 @@
                 <Button Content="Remove Row" Command="{Binding RemoveRowCommand}" Margin="5"/>
                 <Button Content="Jump to Start" Command="{Binding JumpToStartCommand}" Margin="5"/>
                 <Button Content="Jump to End" Command="{Binding JumpToEndCommand}" Margin="5"/>
+                <Button Content="Import from file" Command="{Binding ImportFromFileCommand}" Margin="5"/>
             </StackPanel>
             <local:TrackPlayer x:Name="trackPlayer"/>
         </StackPanel>

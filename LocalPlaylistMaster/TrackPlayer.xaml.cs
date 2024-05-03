@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using static LocalPlaylistMaster.Extensions.StringCleaning;
+using static LocalPlaylistMaster.Backend.Utilities.Timestamps;
 
 namespace LocalPlaylistMaster
 {
@@ -25,6 +26,8 @@ namespace LocalPlaylistMaster
         private readonly Dictionary<string, TimeChangedCallback> timeCallbacks = [];
         private readonly Dictionary<string, SelectionCallback> selectionCallbacks = [];
 
+        private Track? myTrack;
+
         public TrackPlayer()
         {
             InitializeComponent();
@@ -37,23 +40,14 @@ namespace LocalPlaylistMaster
             mediaElement.MediaEnded += (_, _) => Stop();
         }
 
-        private static string TimeString(TimeSpan time)
-        {
-            if(time > TimeSpan.FromHours(1))
-            {
-                return time.ToString(@"hh\:mm\:ss");
-            }
-
-            return time.ToString(@"mm\:ss");
-        }
-
         public void ChangeTrack(Track track)
         {
             Stop();
             if (Db == null) return;
             mediaElement.Source = new Uri(Db.GetTrackAudio(track).FullName);
-            durationText.Text = TimeString(TimeSpan.FromSeconds(track.TimeInSeconds));
-            currentTimeText.Text = TimeString(TimeSpan.Zero);
+            durationText.Text = DisplayTime(track.Length);
+            currentTimeText.Text = DisplayTime(TimeSpan.Zero);
+            myTrack = track;
         }
 
         private void Tick(object? sender, EventArgs e)
@@ -70,7 +64,7 @@ namespace LocalPlaylistMaster
         private void TimelineSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
-            currentTimeText.Text = TimeString(mediaElement.Position);
+            currentTimeText.Text = DisplayTime(mediaElement.Position);
         }
 
         private void TogglePlay(object sender, RoutedEventArgs e)
@@ -92,7 +86,8 @@ namespace LocalPlaylistMaster
 
         private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
         {
-            timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalSeconds;
+            if (myTrack == null) return;
+            timelineSlider.Maximum = myTrack.TimeInSeconds;
         }
 
         private void TimelineSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -273,7 +268,7 @@ namespace LocalPlaylistMaster
 
         public TimeSpan GetCurrentMediaLength()
         {
-            return mediaElement.NaturalDuration.TimeSpan;
+            return myTrack?.Length ?? TimeSpan.Zero;
         }
 
         private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)

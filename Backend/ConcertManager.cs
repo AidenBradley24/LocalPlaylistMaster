@@ -1,6 +1,8 @@
 ﻿using LocalPlaylistMaster.Backend.Utilities;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using System.Globalization;
+using System.Text;
 using static LocalPlaylistMaster.Backend.Utilities.ProgressModel;
 
 namespace LocalPlaylistMaster.Backend
@@ -121,6 +123,52 @@ namespace LocalPlaylistMaster.Backend
                 names.Add(name);
                 record.Name = name;
             }
+        }
+
+        /// <summary>
+        /// Imports track records from a stream.
+        /// h:mm:ss or m:ss timestamp followed by a - and then the name to the newline.
+        /// (NO END TIMESTAMP)
+        /// </summary>
+        /// <param name="text"></param>
+        public void Import(Stream stream, TimeSpan concertLength, bool overwrite = true)
+        {
+            int i = 1;
+            if (overwrite)
+            {
+                TrackRecords.Clear();          
+            }
+            else
+            {
+                i = TrackRecords.Count + 1;
+            }
+
+            using var reader = new StreamReader(stream);
+            TrackRecord? workingRecord = null;
+
+            while (!reader.EndOfStream)
+            {
+                string? line = reader.ReadLine();
+                if (string.IsNullOrWhiteSpace(line)) return;
+                line = line.Replace('–', '-');
+                int index = line.IndexOf('-');
+                if (index < 0) continue;
+                string timeString = line[..index].Trim();
+                TimeSpan time = Timestamps.ParseTime(timeString);
+                string name = line[(index+1)..].Trim();
+                if(workingRecord != null)
+                {
+                    workingRecord.EndTime = time;
+                }
+                workingRecord = new TrackRecord(name, time, time, i++);
+                TrackRecords.Add(workingRecord);
+            }
+            if(workingRecord != null)
+            {
+                workingRecord.EndTime = concertLength;
+            }
+
+            EnsureNamesAreUnique();
         }
     }
 }

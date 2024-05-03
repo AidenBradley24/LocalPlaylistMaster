@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Globalization;
+using static LocalPlaylistMaster.Backend.Utilities.Timestamps;
 
 namespace LocalPlaylistMaster
 {
@@ -24,9 +24,6 @@ namespace LocalPlaylistMaster
             get => (TimeSpan)GetValue(TimeProperty);
             set => SetValue(TimeProperty, value);
         }
-
-        private const string MINUTE_FORMAT = @"mm\:ss";
-        private const string HOUR_FORMAT = @"hh\:mm\:ss";
 
         public TimeSpanBox()
         {
@@ -54,21 +51,19 @@ namespace LocalPlaylistMaster
 
         private void FinishInput()
         {
-            if (TimeSpan.TryParse(textBox.Text, CultureInfo.InvariantCulture, out var timeSpan))
+            try
             {
-                Time = timeSpan;
+                Time = ParseTime(textBox.Text);
             }
-            else
+            catch
             {
-                string format = Time.TotalHours >= 1 ? HOUR_FORMAT : MINUTE_FORMAT;
-                textBox.Text = Time.ToString(format, CultureInfo.InvariantCulture);
+                textBox.Text = DisplayTime(Time);
             }
         }
 
         private void Update()
         {
-            string format = Time.TotalHours >= 1 ? HOUR_FORMAT : MINUTE_FORMAT;
-            textBox.Text = Time.ToString(format, CultureInfo.InvariantCulture);
+            textBox.Text = DisplayTime(Time);
         }
     }
 }

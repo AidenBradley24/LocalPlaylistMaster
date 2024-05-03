@@ -111,6 +111,7 @@ namespace LocalPlaylistMaster.Backend
                 stream.Position = 0;
                 using var doc = await JsonDocument.ParseAsync(stream);
                 var chapters = doc.RootElement.GetProperty("chapters");
+                if (chapters.ValueKind == JsonValueKind.Array)
                 foreach (var chapter in chapters.EnumerateArray())
                 {
                     string title = chapter.GetProperty("title").GetString() ?? "";

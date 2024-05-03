@@ -184,6 +184,8 @@ namespace LocalPlaylistMaster.Backend
         {
             return $"#{Id} -- {Name}";
         }
+
+        public TimeSpan Length { get => TimeSpan.FromSeconds(TimeInSeconds); }
     }
 
     [Flags]
