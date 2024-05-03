@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.ComponentModel;
 
 namespace LocalPlaylistMaster
 {
@@ -35,6 +36,7 @@ namespace LocalPlaylistMaster
             try
             {
                 dependencyProcessManager = new DependencyProcessManager();
+                trackPlayer.ProcessManager = dependencyProcessManager;
             }
             catch (FileNotFoundException ex)
             {
@@ -190,6 +192,12 @@ namespace LocalPlaylistMaster
         private void CloseApp(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            trackPlayer.Dispose();
         }
     }
 }

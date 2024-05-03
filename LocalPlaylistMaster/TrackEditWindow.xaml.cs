@@ -26,7 +26,6 @@ namespace LocalPlaylistMaster
             set
             {
                 volume = value;
-                trackPlayer.mediaElement.Volume = 0.5 * (value - 1) + 0.5;
                 OnPropertyChanged(nameof(Volume));
                 changedVolume = true;
             }
@@ -71,6 +70,7 @@ namespace LocalPlaylistMaster
             this.track = track;
             this.processes = processes;
             trackPlayer.Db = manager;
+            trackPlayer.ProcessManager = processes;
             trackPlayer.ChangeTrack(track);
             Title = $"Edit Track ({track.Name})";
 
@@ -158,6 +158,12 @@ namespace LocalPlaylistMaster
         private void ApplyButton(object sender, RoutedEventArgs e)
         {
             Apply();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            trackPlayer.Dispose();
         }
     }
 }

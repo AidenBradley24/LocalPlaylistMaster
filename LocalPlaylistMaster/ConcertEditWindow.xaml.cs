@@ -50,6 +50,7 @@ namespace LocalPlaylistMaster
             this.remote = remote;
             this.processes = processes;
             trackPlayer.Db = db;
+            trackPlayer.ProcessManager = processes;
             Title = $"Edit Concert ({remote.Name})";
 
             AddRowCommand = new RelayCommand(AddRow, () => TrackRecords != null);
@@ -171,13 +172,13 @@ namespace LocalPlaylistMaster
         private void JumpToStart()
         {
             if (TrackRecords == null || trackGrid.SelectedItem == null) return;
-            trackPlayer.mediaElement.Position = ((Concert.TrackRecord)trackGrid.SelectedItem).StartTime;
+            trackPlayer.Seek(((Concert.TrackRecord)trackGrid.SelectedItem).Start);
         }
 
         private void JumpToEnd()
         {
             if (TrackRecords == null || trackGrid.SelectedItem == null) return;
-            trackPlayer.mediaElement.Position = ((Concert.TrackRecord)trackGrid.SelectedItem).EndTime;
+            trackPlayer.Seek(((Concert.TrackRecord)trackGrid.SelectedItem).End);
         }
 
         private void RecalcMarkers()
@@ -232,6 +233,12 @@ namespace LocalPlaylistMaster
         {
             await db.UpdateRemotes([remote]);
             await Startup();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            trackPlayer.Dispose();
         }
     }
 }

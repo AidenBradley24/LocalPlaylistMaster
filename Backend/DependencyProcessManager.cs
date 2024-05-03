@@ -80,5 +80,12 @@ namespace LocalPlaylistMaster.Backend
             p.StartInfo.FileName = ffprobePath;
             return p;
         }
+
+        public Process CreateFFplayProcess()
+        {
+            var p = new Process();
+            p.StartInfo.FileName = ffplayPath;
+            return p;
+        }
     }
 }

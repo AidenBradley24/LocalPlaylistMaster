@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Diagnostics;
 using static LocalPlaylistMaster.Extensions.StringCleaning;
 using static LocalPlaylistMaster.Backend.Utilities.Timestamps;
 
@@ -13,11 +14,12 @@ namespace LocalPlaylistMaster
     /// <summary>
     /// Interaction logic for TrackPlayer.xaml
     /// </summary>
-    public partial class TrackPlayer : UserControl
+    public sealed partial class TrackPlayer : UserControl, IDisposable
     {
         private readonly DispatcherTimer timer;
         private bool isPlaying = false;
         public DatabaseManager? Db { get; set; }
+        public DependencyProcessManager? ProcessManager { get; set; }
 
         public delegate void TimeChangedCallback(TimeSpan time);
         public delegate void SelectionCallback();
@@ -27,6 +29,11 @@ namespace LocalPlaylistMaster
         private readonly Dictionary<string, SelectionCallback> selectionCallbacks = [];
 
         private Track? myTrack;
+        private Process? ffplay;
+        private TimeSpan currentTime;
+
+        private bool isDragging = false;
+        private Point startPosition;
 
         public TrackPlayer()
         {
@@ -37,34 +44,48 @@ namespace LocalPlaylistMaster
             };
             timer.Tick += Tick;
             togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
-            mediaElement.MediaEnded += (_, _) => Stop();
+        }
+
+        public void Dispose()
+        {
+            if (isPlaying) ffplay?.Kill();
+            ffplay?.Dispose();
         }
 
         public void ChangeTrack(Track track)
         {
             Stop();
+            if (ProcessManager == null) return;
             if (Db == null) return;
-            mediaElement.Source = new Uri(Db.GetTrackAudio(track).FullName);
+            ffplay = ProcessManager.CreateFFplayProcess();
+            ffplay.StartInfo.CreateNoWindow = true;
+            timelineSlider.Maximum = track.TimeInSeconds;
+            ffplay.Exited += (_, _) => Stop();
             durationText.Text = DisplayTime(track.Length);
             currentTimeText.Text = DisplayTime(TimeSpan.Zero);
             myTrack = track;
+        }
+
+        private void AdjustFFplay()
+        {
+            if (ffplay == null || Db == null || myTrack == null) return;
+            ffplay.StartInfo.Arguments = $"-i \"{Db.GetTrackAudio(myTrack).FullName}\" -autoexit -nodisp -ss {currentTime.TotalSeconds}";
+            ffplay.Start();
+            timer.Start();
         }
 
         private void Tick(object? sender, EventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
-                if (mediaElement.NaturalDuration.HasTimeSpan)
-                {
-                    timelineSlider.Value = mediaElement.Position.TotalSeconds;
-                }
+                currentTime += timer.Interval;
+                timelineSlider.Value = currentTime.TotalSeconds;
             });
         }
 
         private void TimelineSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
-            currentTimeText.Text = DisplayTime(mediaElement.Position);
+            currentTimeText.Text = DisplayTime(TimeSpan.FromSeconds(timelineSlider.Value));
         }
 
         private void TogglePlay(object sender, RoutedEventArgs e)
@@ -72,22 +93,36 @@ namespace LocalPlaylistMaster
             isPlaying = !isPlaying;
             if (isPlaying)
             {
-                mediaElement.Play();
-                timer.Start();
+                Play();
                 togglePlayImage.Source = (ImageSource)FindResource("PauseIcon");
             }
             else
             {
-                mediaElement.Pause();
-                timer.Stop();
+                Pause();
                 togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
             }
         }
 
-        private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
+        public void Play()
         {
-            if (myTrack == null) return;
-            timelineSlider.Maximum = myTrack.TimeInSeconds;
+            isPlaying = true;
+            AdjustFFplay();
+        }
+
+        public void Pause()
+        {
+            isPlaying = false;
+            ffplay?.Kill();
+            timer.Stop();
+        }
+
+        public void Seek(double value)
+        {
+            currentTime = TimeSpan.FromSeconds(value);
+            if (!isPlaying) return;
+            timer.Stop();
+            ffplay?.Kill();
+            AdjustFFplay();
         }
 
         private void TimelineSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -95,19 +130,17 @@ namespace LocalPlaylistMaster
             Point position = e.GetPosition(timelineSlider);
             double value = position.X / timelineSlider.ActualWidth * timelineSlider.Maximum;
             timelineSlider.Value = value;
-            if (mediaElement != null && mediaElement.NaturalDuration.HasTimeSpan)
-            {
-                mediaElement.Position = TimeSpan.FromSeconds(value);
-            }
+            Seek(timelineSlider.Value);
         }
 
         public void Stop()
         {
             timer.Stop();
-            mediaElement.Stop();
+            if (isPlaying) ffplay?.Kill();
             togglePlayImage.Source = (ImageSource)FindResource("PlayIcon");
             isPlaying = false;
             timelineSlider.Value = 0;
+            currentTime = TimeSpan.FromSeconds(0);
         }
 
         public TimeSpan GetMarkerTime(string marker)
@@ -193,17 +226,15 @@ namespace LocalPlaylistMaster
 
         private TimeSpan CanvasPositionToMarkerTime(double canvasPosition)
         {
-            return mediaElement.NaturalDuration.TimeSpan * (canvasPosition / (timelineSlider.ActualWidth - 10));
+            if(myTrack == null) return TimeSpan.Zero;
+            return myTrack.Length * (canvasPosition / (timelineSlider.ActualWidth - 10));
         }
 
         private double MarkerTimeToCanvasPosition(TimeSpan markerTime)
         {
-            if (!mediaElement.NaturalDuration.HasTimeSpan) return 0.0;
-            return markerTime / mediaElement.NaturalDuration.TimeSpan * (timelineSlider.ActualWidth - 10);
+            if (myTrack == null) return 0.0;
+            return markerTime / myTrack.Length * (timelineSlider.ActualWidth - 10);
         }
-
-        private bool isDragging = false;
-        private Point startPosition;
 
         private void MarkerMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -263,7 +294,7 @@ namespace LocalPlaylistMaster
 
         public TimeSpan GetCurrentMediaTime()
         {
-            return mediaElement.Position;
+            return currentTime;
         }
 
         public TimeSpan GetCurrentMediaLength()

@@ -12,7 +12,6 @@
     </UserControl.Resources>
     <Border>
         <StackPanel Orientation="Vertical" Margin="5">
-            <MediaElement x:Name="mediaElement" LoadedBehavior="Manual" MediaOpened="MediaElement_MediaOpened"/>
             <DockPanel>
                 <TextBlock x:Name="currentTimeText" DockPanel.Dock="Left" HorizontalAlignment="Left"/>
                 <TextBlock x:Name="durationText" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
