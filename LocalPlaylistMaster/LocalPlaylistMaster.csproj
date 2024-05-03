@@ -1,0 +1,89 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <StartupObject>LocalPlaylistMaster.App</StartupObject>
+    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Icons\icon_half_star.png" />
+    <None Remove="Icons\icon_next.png" />
+    <None Remove="Icons\icon_next_to_end.png" />
+    <None Remove="Icons\icon_no_rating_star.png" />
+    <None Remove="Icons\icon_no_star.png" />
+    <None Remove="Icons\icon_pause.png" />
+    <None Remove="Icons\icon_play.png" />
+    <None Remove="Icons\icon_prev.png" />
+    <None Remove="Icons\icon_prev_to_end.png" />
+    <None Remove="Icons\icon_whole_star.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Backend\LocalPlaylistMaster.Backend.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Icons\icon_half_star.png" />
+    <Resource Include="Icons\icon_next.png" />
+    <Resource Include="Icons\icon_next_to_end.png" />
+    <Resource Include="Icons\icon_no_rating_star.png" />
+    <Resource Include="Icons\icon_no_star.png" />
+    <Resource Include="Icons\icon_pause.png" />
+    <Resource Include="Icons\icon_play.png" />
+    <Resource Include="Icons\icon_prev.png" />
+    <Resource Include="Icons\icon_prev_to_end.png" />
+    <Resource Include="Icons\icon_whole_star.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="ExportPlaylistWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Update="ConcertEditWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="UserQueryWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="NewRemoteWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="NewPlaylistWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+</Project>

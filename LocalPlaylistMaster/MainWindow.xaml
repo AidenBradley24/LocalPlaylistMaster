@@ -1,0 +1,295 @@
+﻿<Window x:Class="LocalPlaylistMaster.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:ex="clr-namespace:LocalPlaylistMaster.Extensions" 
+        xmlns:localplaylistmaster="clr-namespace:LocalPlaylistMaster" 
+        d:DataContext="{d:DesignInstance Type=localplaylistmaster:MainModel}"
+        mc:Ignorable="d"
+        Title="Local Playlist Master" Height="450" Width="800">
+    <Window.Resources>
+        <ex:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <ex:IntStringMapConverter x:Key="RemoteMap"/>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="False">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="DarkBlue"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EditFilterCommand}"/>
+        <KeyBinding Key="Esc" Command="{Binding ClearSelectionCommand}"/>
+    </Window.InputBindings>
+    <Grid>
+        <DockPanel LastChildFill = "True">
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="File">
+                    <MenuItem x:Name="RecentMenu" Header="Recent" 
+                              Visibility="{Binding HasRecent, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <MenuItem Header="New" Click="CreateNewDb"/>
+                    <MenuItem Header="Open" Click="OpenExistingDb"/>
+                    <Separator/>
+                    <MenuItem Header="Exit" Click="CloseApp"/>
+                </MenuItem>
+                <MenuItem Header="Import">
+                    <MenuItem Header="Add Remote" Command="{Binding NewRemoteCommand}"/>
+                    <MenuItem Header="Fetch All" Command="{Binding FetchAllCommand}"/>
+                    <MenuItem Header="Download All" Command="{Binding DownloadAllCommand}"/>
+                    <MenuItem Header="Sync New" Command="{Binding SyncNewCommand}"/>
+                </MenuItem>
+                <MenuItem Header="Track Filter">
+                    <MenuItem.Background>lightblue</MenuItem.Background>
+                    <MenuItem Header="Edit Filter" Command="{Binding EditFilterCommand}"/>
+                    <MenuItem Header="Clear Filter" Command="{Binding ClearFilterCommand}"/>
+                </MenuItem>
+                <MenuItem Header="Track Selection" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <MenuItem.Background>lightgray</MenuItem.Background>
+                    <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"
+                        Visibility="{Binding CanRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <MenuItem Header="Undo Remove" Command="{Binding UndoRemoveTrackCommand}"
+                        Visibility="{Binding CanUndoRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <MenuItem Header="Download Audio" Command="{Binding DownloadSelectedTracksCommand}"/>
+                </MenuItem>
+                <MenuItem Header="Remote Selection" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <MenuItem.Background>lightgray</MenuItem.Background>
+                    <MenuItem Header="Add" Command="{Binding NewRemoteCommand}"/>
+                    <MenuItem Header="Remove" Command="{Binding RemoveRemoteSelectionFromDbCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Fetch" Command="{Binding FetchRemoteSelectionCommand}"/>
+                    <MenuItem Header="Download" Command="{Binding DownloadRemoteSelectionCommand}"/>
+                    <MenuItem Header="Sync" Command="{Binding SyncRemoteSelectionCommand}"/>
+                </MenuItem>
+                <MenuItem Header="Playlist Selection" Visibility="{Binding EditingPlaylist, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <MenuItem.Background>lightgray</MenuItem.Background>
+                    <MenuItem Header="Add" Command="{Binding NewPlaylistCommand}"/>
+                    <MenuItem Header="Remove" Command="{Binding RemovePlaylistSelectionFromDbCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Export" Command="{Binding ExportSelectedPlaylistCommand}"/>
+                </MenuItem>
+            </Menu>
+            <StackPanel x:Name="Bottom_Bar" DockPanel.Dock = "Bottom" Orientation = "Horizontal" Height="20" Background="DimGray">
+                <TextBlock Text="{Binding DbName}" Foreground="White" Padding="5,0" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- table -->
+                <Border Grid.Column="2" Background="LightBlue" Margin="5">
+                    <Grid>
+                        <TabControl x:Name="tabControl" SelectionChanged="TabControl_SelectionChanged" PreviewMouseDown="TabControl_PreviewMouseDown">
+                            <TabItem Name="tracksTab" Header="Tracks">
+                                <Grid>
+                                    <DataGrid x:Name="trackGrid" ItemsSource="{Binding Tracks}" CanUserReorderColumns="False" 
+                                              AutoGenerateColumns="False" IsReadOnly="True"
+                                              SelectionChanged="TrackGrid_SelectionChanged"
+                                              SelectionMode="Extended" SelectionUnit="FullRow">
+                                        <DataGrid.Resources>
+                                            <ContextMenu x:Key="ItemContextMenu">
+                                                <MenuItem Header="Remove" Command="{Binding RemoveTrackSelectionFromDbCommand}"
+                                                    Visibility="{Binding CanRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <MenuItem Header="Undo Remove" Command="{Binding UndoRemoveTrackCommand}"
+                                                    Visibility="{Binding CanUndoRemove, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <MenuItem Header="Download Audio" Command="{Binding DownloadSelectedTracksCommand}"/>
+                                            </ContextMenu>
+                                        </DataGrid.Resources>
+                                        <DataGrid.ContextMenu>
+                                            <StaticResource ResourceKey="ItemContextMenu"/>
+                                        </DataGrid.ContextMenu>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
+                                            <DataGridTextColumn Header="Remote" Binding="{Binding Remote, Converter={StaticResource RemoteMap}}"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                            <DataGridTextColumn Header="Album" Binding="{Binding Album}"/>
+                                            <DataGridTextColumn Header="Artists" Binding="{Binding Artists}"/>
+                                            <DataGridTextColumn Header="Length" Binding="{Binding LengthString}"/>
+                                            <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </TabItem>
+                            <TabItem Name="remotesTab" Header="Remotes">
+                                <Grid>
+                                    <DataGrid x:Name ="remoteGrid" ItemsSource="{Binding Remotes}" CanUserReorderColumns="False" 
+                                              AutoGenerateColumns="False" IsReadOnly="True"
+                                              SelectionChanged="RemoteGrid_SelectionChanged"
+                                              SelectionMode="Extended" SelectionUnit="FullRow">
+                                        <DataGrid.Resources>
+                                            <ContextMenu x:Key="ItemContextMenu">
+                                                <MenuItem Header="Add" Command="{Binding NewRemoteCommand}"/>
+                                                <MenuItem Header="Remove" Command="{Binding RemoveRemoteSelectionFromDbCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Fetch" Command="{Binding FetchRemoteSelectionCommand}"/>
+                                                <MenuItem Header="Download" Command="{Binding DownloadRemoteSelectionCommand}"/>
+                                                <MenuItem Header="Sync" Command="{Binding SyncRemoteSelectionCommand}"/>
+                                            </ContextMenu>
+                                        </DataGrid.Resources>
+                                        <DataGrid.ContextMenu>
+                                            <StaticResource ResourceKey="ItemContextMenu"/>
+                                        </DataGrid.ContextMenu>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                            <DataGridTextColumn Header="Link" Binding="{Binding Link}"/>
+                                            <DataGridTextColumn Header="Count" Binding="{Binding TrackCount}"/>
+                                            <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </TabItem>
+                            <TabItem Name="playlistsTab" Header="Playlists">
+                                <Grid>
+                                    <DataGrid x:Name ="playlistGrid" ItemsSource="{Binding Playlists}" CanUserReorderColumns="False" 
+                                              AutoGenerateColumns="False" IsReadOnly="True"
+                                              SelectionChanged="PlaylistGrid_SelectionChanged"
+                                              SelectionMode="Single" SelectionUnit="FullRow">
+                                        <DataGrid.Resources>
+                                            <ContextMenu x:Key="ItemContextMenu">
+                                                <MenuItem Header="Add" Command="{Binding NewPlaylistCommand}"/>
+                                                <MenuItem Header="Remove" Command="{Binding RemovePlaylistSelectionFromDbCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Export" Command="{Binding ExportSelectedPlaylistCommand}"/>
+                                            </ContextMenu>
+                                        </DataGrid.Resources>
+                                        <DataGrid.ContextMenu>
+                                            <StaticResource ResourceKey="ItemContextMenu"/>
+                                        </DataGrid.ContextMenu>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="ID" Binding="{Binding Id}"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                            <DataGridTextColumn Header="Description" Binding="{Binding TruncatedDescription}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                        <Border BorderThickness="1" BorderBrush="Gray" Background="WhiteSmoke" Height="20" VerticalAlignment="Bottom" Width="160">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding FirstPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanPrevious, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_prev_to_end.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding PreviousPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanPrevious, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_prev.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding NextPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanNext, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_next.png"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Margin="10,0" Width="20" Height="15">
+                                    <Button Command="{Binding LastPageCommand}" BorderThickness="0" Background="WhiteSmoke"
+                                        Visibility="{Binding CanNext, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Image Source="Icons/icon_next_to_end.png"/>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+                <GridSplitter Grid.Column="1" Width="5" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Background="White"/>
+
+                <!-- side panel -->
+                <Border Grid.Column="0" Background="LightGray" Margin="5" Width="Auto" MinWidth="400">
+                    <DockPanel Visibility="{Binding IsItemSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,5" Background="{Binding NotificationBackgroundColor, Mode=OneWay}" 
+                                    Visibility="{Binding HasNotification, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding NotificationText, Mode=OneWay}" TextAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="15"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
+                            <TextBlock Text="{Binding SelectedText}"/>
+                            <Rectangle Height="10"/>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Name:" Width="100"/>
+                                <TextBox Text="{Binding EditName, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10">
+                                <Label Content="Description:" Width="100"/>
+                                <RichTextBox Width="280" Height="100" HorizontalAlignment="Left" AcceptsReturn="True" AcceptsTab="True">
+                                    <FlowDocument>
+                                        <Paragraph>
+                                            <Run Text="{Binding EditDescription, Mode=TwoWay}"/>
+                                        </Paragraph>
+                                    </FlowDocument>
+                                </RichTextBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingPlaylist, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Track selection:" Width="100"/>
+                                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3">
+                                    <TextBlock Text="{Binding EditPlaylistTrackFilter, Mode=TwoWay}" Width="280" 
+                                       HorizontalAlignment="Left" MouseDown="EditTrackQuery_MouseDown" Background="LightBlue"
+                                       Height="100" 
+                                       MouseEnter="TextBlockHoverHighlight_MouseEnter" MouseLeave="TextBlockHoverHighlight_MouseLeave"/>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Link:" Width="100"/>
+                                <TextBox Text="{Binding EditLink, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Artists:" Width="100"/>
+                                <TextBox Text="{Binding EditArtists, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Album:" Width="100"/>
+                                <TextBox Text="{Binding EditAlbum, Mode=TwoWay}" AcceptsReturn="False" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Rating:" Width="100"/>
+                                <localplaylistmaster:RatingControl Rating="{Binding EditRating, Mode=TwoWay}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10" Visibility="{Binding EditingTrackOrRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Label Content="Additional Settings:" Width="120"/>
+                                <StackPanel>
+                                    <CheckBox Content="Locked" IsThreeState="True" IsChecked="{Binding EditLocked}" PreviewMouseDown="CheckBox_DontAllowIndeterminate">
+                                        <CheckBox.ToolTip>
+                                            <ToolTip Content="When checked, modifications from remote will be ignored."/>
+                                        </CheckBox.ToolTip>
+                                    </CheckBox>
+                                    <!-- Add more CheckBoxes for additional settings -->
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Vertical" Margin="10" Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <localplaylistmaster:TrackPlayer x:Name="trackPlayer"/>
+                                <Button Content="Edit Audio Track" Command="{Binding EditAudioTrackCommand}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Vertical" Margin="10" Visibility="{Binding EditingRemote, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Button Content="Edit Concert Tracks" Command="{Binding EditConcertTracksCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" DockPanel.Dock="Bottom">
+                            <Button Command="{Binding RollbackCommand}" Content="Rollback" Padding="20,8" Margin="5" HorizontalAlignment="Left" 
+                                    Visibility="{Binding EditingTrack, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <Button Click="CancelItemUpdate"  Content="Cancel" Padding="20,8" Margin="5" HorizontalAlignment="Left" IsCancel="True"/>
+                            <Button Click="ConfirmItemUpdate" Content="Update" Padding="20,8" Margin="5" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</Window>
