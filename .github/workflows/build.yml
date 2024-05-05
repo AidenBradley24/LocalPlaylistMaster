@@ -16,14 +16,20 @@ jobs:
         uses: microsoft/setup-msbuild@v1
         with:
           msbuild-version: 'latest'
+
+      - name: Setup WiX Toolset
+        uses: wixtoolset/setup-wix-toolset@v4
           
       - name: Restore NuGet Packages
         run: nuget restore LocalPlaylistMaster.sln
         
       - name: Build Solution
         run: msbuild /p:Configuration=Release LocalPlaylistMaster.sln
-        
-      - name: Upload Build Artifacts
+         
+      - name: Build WiX Project
+        run: msbuild Installer/Installer.wixproj /p:Configuration=Release
+
+      - name: Upload MSI Artifact
         uses: actions/upload-artifact@v2
         with:
           name: InstallerProject
