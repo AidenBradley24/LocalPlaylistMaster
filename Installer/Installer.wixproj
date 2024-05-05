@@ -1,0 +1,9 @@
+﻿<Project Sdk="WixToolset.Sdk/5.0.0">
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Backend\LocalPlaylistMaster.Backend.csproj" />
+    <ProjectReference Include="..\LocalPlaylistMaster\LocalPlaylistMaster.csproj" />
+  </ItemGroup>
+</Project>

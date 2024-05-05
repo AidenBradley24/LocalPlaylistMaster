@@ -26,5 +26,5 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: SetupProject
-          path: Setup/Release
+          name: InstallerProject
+          path: Installer/bin/x64/Release/Installer.msi

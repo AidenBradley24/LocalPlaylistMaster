@@ -1,0 +1,48 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Local Playlist Master" 
+           Manufacturer="Aiden Bradley" 
+           Version="1.0.0" 
+           UpgradeCode="0ebb1d25-1999-4383-acae-ec1af375b20f">
+    <Media Id="1" Cabinet="setup.cab" EmbedCab="yes" />
+  
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="!(bind.Property.ProductName)"/>
+    </StandardDirectory>
+    <Directory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Local Playlist Master"/>
+    </Directory>
+    
+    <Feature Id="Main">
+      <Files Include="..\LocalPlaylistMaster\bin\$(Configuration)\net8.0-windows8.0\**"/>
+      <Files Include="..\LocalPlaylistMaster.Backend\bin\$(Configuration)\net8.0-windows8.0\**"/>
+      <ComponentRef Id="ApplicationShortcutDesktop"/>
+      <ComponentRef Id="ApplicationShortcut"/>
+    </Feature>
+    
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="ApplicationShortcutDesktop" Guid="3a3814ae-4f54-4092-b473-75f92f8454d6">
+        <Shortcut Id="ApplicationDesktopShortcut"
+          Name="!(bind.Property.ProductName)"
+          Target="[INSTALLFOLDER]LocalPlaylistMaster.exe"
+          WorkingDirectory="INSTALLFOLDER"/>
+        <RegistryValue Root="HKCU" Key="Software\LocalPlaylistMaster" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="9cc79b85-d9e6-4e6c-9300-b866ea8b984e">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="!(bind.Property.ProductName)"
+                  Target="[INSTALLFOLDER]LocalPlaylistMaster.exe"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\LocalPlaylistMaster" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+  
+  </Package>
+</Wix>
