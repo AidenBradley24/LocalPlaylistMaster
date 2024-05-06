@@ -34,8 +34,7 @@ namespace LocalPlaylistMaster.Backend
             dependencyProcessManager = dependencies;
             DirectoryInfo dir = Directory.CreateDirectory(dirPath);
 
-            string dbPath = Path.Join(dir.FullName, "playlist.db");
-
+            string dbPath = Path.Join(dir.FullName, "library.db");
             if (!newDb && !File.Exists(dbPath))
             {
                 throw new FileNotFoundException($"'{dbPath}' does not exist");
