@@ -2,7 +2,7 @@
 
 namespace LocalPlaylistMaster.Backend
 {
-    public class DependencyProcessManager
+    public sealed class DependencyProcessManager
     {
         private readonly string dlpPath, ffmpegPath, ffplayPath, ffprobePath;
 
@@ -52,8 +52,9 @@ namespace LocalPlaylistMaster.Backend
             {
                 FileName = "cmd.exe",
                 Arguments = $"/C \"{download.FullName}\"",
-                UseShellExecute = false,
+                UseShellExecute = true,
                 CreateNoWindow = false,
+                Verb = "runas"
             };
 
             using Process process = Process.Start(info) ?? throw new ApplicationException("Unable to run download");
