@@ -46,7 +46,16 @@ namespace LocalPlaylistMaster
                 
                 if(result == MessageBoxResult.OK)
                 {
-                    DependencyProcessManager.DownloadProcesses();
+                    try
+                    {
+                        DependencyProcessManager.DownloadProcesses();
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show($"An error has occurred and download was not completed.\nPlease contact the developer. {e}");
+                        Environment.Exit(-1);
+                        return;
+                    }
                     MessageBox.Show("Download complete!\nRestart the app.");
                     Environment.Exit(0);
                 }
