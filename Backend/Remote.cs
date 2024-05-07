@@ -80,9 +80,4 @@ namespace LocalPlaylistMaster.Backend
         removeMe = 1 << 0, 
         locked = 1 << 1,
     }
-
-    public enum RemoteType
-    {
-        UNINITIALIZED = -1, ytdlp_playlist, ytdlp_concert
-    }
 }

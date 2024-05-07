@@ -9,15 +9,25 @@ namespace LocalPlaylistMaster.Backend
 {
     public partial record Track : IEqualityComparer<Track>, IComparable<Track>, IMiscJsonUser
     {
+        [NotNull]
         public int Id { get; set; }
+        [NotNull]
         public string Name { get; set; }
+        [NotNull]
         public int Remote { get; set; }
+        [NotNull]
         public string RemoteId { get; set; }
+        [NotNull]
         public string Artists { get; set; }
+        [NotNull]
         public string Album { get; set; }
+        [NotNull]
         public string Description { get; set; }
+        [NotNull]
         public int Rating { get; set; }
+        [NotNull]
         public double TimeInSeconds { get; set; }
+        [NotNull]
         public string MiscJson { get; set; }
 
         public TrackSettings Settings { get; set; }

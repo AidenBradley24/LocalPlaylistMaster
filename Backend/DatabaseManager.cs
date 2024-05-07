@@ -580,10 +580,10 @@ namespace LocalPlaylistMaster.Backend
                         continue;
                     }
 
-                    (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, remoteIds);
+                    (DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, remoteIds);
                     ConversionHandeler conversion = new(group.Select(t => (t.Id, t.RemoteId)), fileMap, audioDir, dependencyProcessManager, reporter);
                     await conversion.Convert();
-                    downloadDir.Delete(true);
+                    downloadDir?.Delete(true);
                 }
 
                 List<Track> notDownloaded = [];
@@ -668,10 +668,10 @@ namespace LocalPlaylistMaster.Backend
                 }
 
                 var ids = await GetExistingTrackIdsFromRemote(remote);
-                (DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, ids.Select(t => t.remoteId));
+                (DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap) = await manager.DownloadAudio(reporter, ids.Select(t => t.remoteId));
                 ConversionHandeler conversion = new(ids, fileMap, audioDir, dependencyProcessManager, reporter);
                 await conversion.Convert();
-                downloadDir.Delete(true);
+                downloadDir?.Delete(true);
 
                 List<int> notDownloaded = [];
 
@@ -758,7 +758,7 @@ namespace LocalPlaylistMaster.Backend
                 reporter.Report((ReportType.DetailText, "fetching remote"));
                 var downloadBlacklist = await GetExistingTrackRemoteIds(remote);
 
-                (Remote fetchedRemote, IEnumerable<Track> fetchedTracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap) 
+                (Remote fetchedRemote, IEnumerable<Track> fetchedTracks, DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap) 
                     = await manager.SyncRemote(reporter, downloadBlacklist);
 
                 reporter.Report((ReportType.DetailText, "updating database"));
@@ -769,6 +769,7 @@ namespace LocalPlaylistMaster.Backend
 
                 ConversionHandeler conversion = new(fetchedTracks.Select(t => (t.Id, t.RemoteId)), fileMap, audioDir, dependencyProcessManager, reporter);
                 await conversion.Convert();
+                downloadDir?.Delete(true);
                 reporter.Report((ReportType.DetailText, "updating database"));
 
                 List<Track> notDownloaded = [];

@@ -40,6 +40,11 @@ namespace LocalPlaylistMaster
                     Content = "YouTube / web video concert",
                     Tag = RemoteType.ytdlp_concert,
                 },
+                new ComboBoxItem()
+                {
+                    Content = "Local folder",
+                    Tag = RemoteType.local_folder,
+                }
             ];
 
             items[0].SetBinding(ContentProperty, autoType);
@@ -48,6 +53,7 @@ namespace LocalPlaylistMaster
             remoteTypeMap.Add(RemoteType.UNINITIALIZED, 0);
             remoteTypeMap.Add(RemoteType.ytdlp_playlist, 1);
             remoteTypeMap.Add(RemoteType.ytdlp_concert, 2);
+            remoteTypeMap.Add(RemoteType.local_folder, 3);
 
             typeBox.ItemsSource = items;
             typeBox.SelectionChanged += TypeBox_SelectionChanged;
