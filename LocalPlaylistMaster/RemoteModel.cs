@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using LocalPlaylistMaster.Backend;
@@ -133,9 +134,27 @@ namespace LocalPlaylistMaster
             {
                 return RemoteType.UNINITIALIZED;
             }
+            else if(remote.Link.StartsWith("http"))
+            {
+                if (remote.Link.Contains("?list"))
+                {
+                    return RemoteType.ytdlp_playlist;
+                }
+                else
+                {
+                    return RemoteType.ytdlp_concert;
+                }
+            }
             else
             {
-                return RemoteType.ytdlp_playlist;
+                try
+                {
+                    return Directory.Exists(remote.Link) ? RemoteType.local_folder : RemoteType.UNINITIALIZED;
+                }
+                catch
+                {
+                    return RemoteType.UNINITIALIZED;
+                }
             }
         }
     }

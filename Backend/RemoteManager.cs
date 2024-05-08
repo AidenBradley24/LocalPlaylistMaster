@@ -2,6 +2,11 @@
 
 namespace LocalPlaylistMaster.Backend
 {
+    public enum RemoteType
+    {
+        UNINITIALIZED = -1, ytdlp_playlist, ytdlp_concert, local_folder,
+    }
+
     /// <summary>
     /// Manages download and syncing from remotes
     /// </summary>
@@ -16,6 +21,7 @@ namespace LocalPlaylistMaster.Backend
             {
                 RemoteType.ytdlp_playlist => new YTdlpPlaylistManager(remote, dependencies),
                 RemoteType.ytdlp_concert => new YTdlpConcertManager(remote, dependencies, db),
+                RemoteType.local_folder => new LocalPlaylistManager(remote, dependencies),
                 _ => throw new Exception("Invalid remote type")
             };
         }
@@ -35,7 +41,7 @@ namespace LocalPlaylistMaster.Backend
         /// </summary>
         /// <param name="remoteIDs">Tracks which to fetch</param>
         /// <returns>Directory with raw files marked with their remote ids and a file extension</returns>
-        public abstract Task<(DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> 
+        public abstract Task<(DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap)> 
             DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs);
 
         /// <summary>
@@ -43,7 +49,7 @@ namespace LocalPlaylistMaster.Backend
         /// </summary>
         /// <param name="ignoredIds">Tracks which to ignore on download</param>
         /// <returns></returns>
-        public abstract Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> 
+        public abstract Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap)> 
             SyncRemote(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds);
     }
 }

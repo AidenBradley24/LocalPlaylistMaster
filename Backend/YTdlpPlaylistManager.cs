@@ -16,7 +16,7 @@ namespace LocalPlaylistMaster.Backend
         public override bool CanDownload => true;
         public override bool CanSync => true;
 
-        public override async Task<(DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs)
+        public override async Task<(DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap)> DownloadAudio(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> remoteIDs)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();
             using Process process = Dependencies.CreateDlpProcess();
@@ -116,7 +116,7 @@ namespace LocalPlaylistMaster.Backend
                 ExistingRemote.Type, ExistingRemote.Settings, "{}"), tracks);
         }
 
-        public override async Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo downloadDir, Dictionary<string, FileInfo> fileMap)> 
+        public override async Task<(Remote remote, IEnumerable<Track> tracks, DirectoryInfo? downloadDir, Dictionary<string, FileInfo> fileMap)> 
             SyncRemote(IProgress<(ReportType type, object report)> reporter, IEnumerable<string> ignoredIds)
         {
             DirectoryInfo downloadDir = Directory.CreateTempSubdirectory();

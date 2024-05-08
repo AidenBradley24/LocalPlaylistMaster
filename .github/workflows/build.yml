@@ -1,4 +1,4 @@
-name: Build
+name: Build and Release
 
 on:
   push:
@@ -23,8 +23,31 @@ jobs:
       - name: Build Solution
         run: msbuild /p:Configuration=Release LocalPlaylistMaster.sln
         
-      - name: Upload Build Artifacts
+      - name: Upload Msi
+        id: upload-msi
         uses: actions/upload-artifact@v2
         with:
-          name: InstallerProject
+          name: installer.msi
           path: Installer/bin/x64/Release/Installer.msi
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.upload-msi.outputs.artifacts.installer.msi }}
+          asset_name: installer.msi
+          asset_content_type: application/octet-stream
+        
