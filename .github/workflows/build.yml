@@ -14,6 +14,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
         
+      - name: Auto Version
+        id: set-version
+        run: python autoversion.py
+      
+      - name: State Version
+        run:  echo ${{ env.MY_VERSION }}
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1
         with:
@@ -38,8 +45,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ env.MY_VERSION }}
+          release_name: ${{ env.MY_VERSION_NAME }}
           draft: false
           prerelease: false
 
@@ -49,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ${{ steps.upload-msi.outputs.artifacts.installer.msi }}
+          asset_path: Installer/bin/x64/Release/Installer.msi
           asset_name: installer.msi
           asset_content_type: application/octet-stream
         
