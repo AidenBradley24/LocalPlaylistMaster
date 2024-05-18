@@ -1,4 +1,6 @@
-# Local Playlist Master
+![logo](Graphics/logo.png)
+# Local Playlist Master 
+
 A set of tools and a GUI to manage a locally hosted music database.
 
 - Quickly import YouTube music playlists and concert YouTube videos with chapters.
@@ -26,6 +28,14 @@ Playlists require the url to be a playlist. Concerts require a single video with
 
 Remotes using yt-dlp as a backend can import from any website that [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
+---
+# Export Options
+
+All exports will include encode metadata inside of mp3 files.
+
+- Playlist file (.xspf) with folder (portable)
+- Standalone playlist file (requires same PC)
+- Folder (portable)
 
 ---
 
@@ -37,8 +47,14 @@ Click on track filter on the toolbar and edit filter. This allows you to display
 Go to the playlist menu and right click to add a playlist. Then afterwards select the playlist and edit the track selection.
 ### Query Syntax
 ![query example 1](docs/query_example_1.png)
+
 In this example, tracks with the ids 1, 2, 3, and 4 are added. Also, any track with a name that contains the string "waffles" inside will be added.
+
 ![query example 2](docs/query_example_2.png)
+
+In this example, tracks with ids 1-5 with rating greater than 5 will be added.
+
+### Cheat Sheet
 
         QUERYABLES:
         id (implicit)                   int
@@ -47,8 +63,8 @@ In this example, tracks with the ids 1, 2, 3, and 4 are added. Also, any track w
         artists                         string
         album                           string
         description                     string
-        rating                          int
-        time                            int
+        rating (1-10)                   int
+        time (seconds)                  int
 
         OPERATORS:
         =   equals
